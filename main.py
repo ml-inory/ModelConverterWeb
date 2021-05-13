@@ -36,14 +36,14 @@ def login():
         password = form.password.data
         user_info = get_user(user_name)  # 从用户数据中查找用户记录
         if user_info is None:
-            emsg = "用户名或密码密码有误"
+            emsg = "用户名或密码有误"
         else:
             user = User(user_info)  # 创建用户实体
             if user.verify_password(password):  # 校验密码
                 login_user(user)  # 创建用户 Session
                 return redirect(request.args.get('next') or url_for('index'))
             else:
-                emsg = "用户名或密码密码有误"
+                emsg = "用户名或密码有误"
     return render_template('login.html', form=form, emsg=emsg)
 
 @login_manager.user_loader  # 定义获取登录用户的方法

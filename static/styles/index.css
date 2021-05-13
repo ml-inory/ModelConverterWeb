@@ -1,0 +1,44 @@
+.navigator{
+    height: 25px;
+    width: 100%;
+    top: 0;
+    margin-left: 0;
+    margin-bottom: 5px;
+    position: fixed;
+    display: block;
+    background-color: cornflowerblue;
+}
+
+.navi_btns{
+    margin-left: 90%;
+}
+
+.history_bar{
+    float: right;
+    position: absolute;
+    top: 25px;
+    right: 0;
+    height: 100%;
+    width: auto;
+    margin-right: 0;
+}
+
+#history{
+    float: right;
+    display: block;
+    height: 100%;
+    margin-left: auto;
+    -moz-transition: margin-right 2s;
+    transition: margin-right 2s;
+    overflow-x: hidden;
+}
+
+#history_show_btn{
+    top: 50%;
+    width: auto;
+    height: 100%;
+    right: auto;
+    border: 0;
+    background-color: darkgray;
+    cursor: pointer;
+}

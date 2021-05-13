@@ -1,0 +1,17 @@
+body
+{
+    background-color: lightgray;
+
+}
+
+div.login{
+    background-color: white;
+    display: block;
+    margin: 0 auto;
+    width: 25%;
+    padding: 20px;
+}
+
+#login_btn {
+    margin-left: 70%;
+}

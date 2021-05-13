@@ -2,9 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}">
+    <script type=text/javascript src="{{
+    url_for('static', filename='js/history_show.js') }}"></script>
+    <title>模型转换</title>
 </head>
 <body>
+    <!-- 导航栏 -->
+    <nav class="navigator">
+        <!-- 按钮组 -->
+        <div class="navi_btns">
+            <button type="button">登出</button>
+        </div>
+    </nav>
+
+    <div class="history_bar">
+        <button id="history_show_btn" onclick="history_show()">>></button>
+        <!-- 侧边栏 历史 -->
+        <aside id="history">
+            <table border="1" rules="none">
+                <tr>
+                    <th>History</th>
+                </tr>
+                <tr>
+                    <th>Date</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                </tr>
+            </table>
+        </aside>
+    </div>
+
+
 
 </body>
 </html>
