@@ -1,9 +1,16 @@
+body{
+    margin: 0;
+    padding: 0;
+}
+
 .navigator{
-    height: 25px;
+    height: auto;
     width: 100%;
     top: 0;
+    overflow: hidden;
+    padding: 0;
     margin-left: 0;
-    margin-bottom: 5px;
+    /*margin-bottom: 5px;*/
     position: fixed;
     display: block;
     background-color: cornflowerblue;
@@ -11,34 +18,15 @@
 
 .navi_btns{
     margin-left: 90%;
-}
-
-.history_bar{
-    float: right;
-    position: absolute;
-    top: 25px;
-    right: 0;
-    height: 100%;
     width: auto;
-    margin-right: 0;
 }
 
-#history{
-    float: right;
-    display: block;
-    height: 100%;
-    margin-left: auto;
-    -moz-transition: margin-right 2s;
-    transition: margin-right 2s;
-    overflow-x: hidden;
+.viewport{
+    margin-top: 30px;
 }
-
-#history_show_btn{
-    top: 50%;
+.main{
+    position: relative;
+    left: 20%;
     width: auto;
-    height: 100%;
-    right: auto;
-    border: 0;
-    background-color: darkgray;
-    cursor: pointer;
+    margin: 0;
 }

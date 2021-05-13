@@ -16,22 +16,25 @@
         </div>
     </nav>
 
-    <div class="history_bar">
-        <button id="history_show_btn" onclick="history_show()">>></button>
-        <!-- 侧边栏 历史 -->
-        <aside id="history">
-            <table border="1" rules="none">
-                <tr>
-                    <th>History</th>
-                </tr>
-                <tr>
-                    <th>Date</th>
-                    <th>Input</th>
-                    <th>Output</th>
-                </tr>
-            </table>
-        </aside>
+    <div class="viewport">
+        <!-- 转换 -->
+        <div class="main">
+            <!-- 输入格式 -->
+            <p>输入格式：</p>
+            <input type="radio" id="input_mmdet" name="input_format" checked/>mmdetection
+            <input type="radio" id="input_mmclassification" name="input_format"/>mmclassification
+            <input type="radio" id="input_onnx" name="input_format"/>ONNX
+
+            <p>输出格式：</p>
+            <input type="radio" id="output_nnie" name="output_format" checked/>NNIE
+            <input type="radio" id="output_tengine" name="output_format"/>Tengine
+            <input type="radio" id="output_onnx" name="output_format"/>ONNX
+
+            <p>转换参数：</p>
+            <button id="convert_btn">转换</button>
+        </div>
     </div>
+
 
 
 
