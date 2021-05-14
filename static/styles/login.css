@@ -1,14 +1,13 @@
 body
 {
     background-color: lightgray;
-
 }
 
 div.login{
     background-color: white;
     display: block;
     margin: 0 auto;
-    width: 25%;
+    width: 250px;
     padding: 20px;
 }
 

@@ -1,16 +1,15 @@
 body{
     margin: 0;
     padding: 0;
+    width: 500px;
 }
 
 .navigator{
     height: auto;
     width: 100%;
     top: 0;
-    overflow: hidden;
+    margin: 0;
     padding: 0;
-    margin-left: 0;
-    /*margin-bottom: 5px;*/
     position: fixed;
     display: block;
     background-color: cornflowerblue;
@@ -22,11 +21,36 @@ body{
 }
 
 .viewport{
-    margin-top: 30px;
+    margin-top: 50px;
 }
+
 .main{
     position: relative;
-    left: 20%;
+    margin-left: 20%;
+    /*margin-right: 20%;*/
     width: auto;
-    margin: 0;
+}
+
+#convert_btn{
+    position: relative;
+    left: 50%;
+}
+
+.upload_btn{
+    padding:3px;
+    background: #01AAED;
+    color: #fff
+}
+
+.upload_btn:hover {
+    opacity: 0.9;
+}
+
+.input_upload{
+    margin-top: 10px;
+}
+
+.upload_input{
+    position: absolute;
+    clip: rect(0 0 0 0);
 }

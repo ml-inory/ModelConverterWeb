@@ -4,17 +4,24 @@ Author: rzyang
 Date: 2021/05/12
 Desc: main
 """
+import os
 from flask import Flask, render_template
 from flask_login import LoginManager, current_user, login_required
 from user import User, get_user
 from flask import render_template, redirect, url_for, request
 from flask_login import login_user
 from elements.LoginForm import LoginForm
+from werkzeug import secure_filename
+
+# 上传文件路径
+UPLOAD_FOLDER = '/uploads'
 
 # 创建Flask应用
 app = Flask(__name__)
 # 设置表单交互密钥，防跨域攻击
 app.secret_key = 'whale'
+# 设置上传文件路径
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # 实例化登录管理对象
 login_manager = LoginManager()
@@ -25,7 +32,7 @@ login_manager.login_view = 'login'
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html')
+    return render_template('index.html', username=current_user.username)
 
 @app.route('/login/', methods=('GET', 'POST'))  # 登录
 def login():

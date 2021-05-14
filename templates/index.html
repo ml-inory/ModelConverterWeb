@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}">
     <script type=text/javascript src="{{
-    url_for('static', filename='js/history_show.js') }}"></script>
-    <title>模型转换</title>
+    url_for('static', filename='js/index.js') }}"></script>
+    <title>模型转换: {{ username }}</title>
 </head>
 <body>
     <!-- 导航栏 -->
     <nav class="navigator">
         <!-- 按钮组 -->
         <div class="navi_btns">
-            <button type="button">登出</button>
+            <button type="button" onclick="window.location.href='{{ url_for('login')}}'">登出</button>
         </div>
     </nav>
 
@@ -21,9 +21,43 @@
         <div class="main">
             <!-- 输入格式 -->
             <p>输入格式：</p>
-            <input type="radio" id="input_mmdet" name="input_format" checked/>mmdetection
-            <input type="radio" id="input_mmclassification" name="input_format"/>mmclassification
-            <input type="radio" id="input_onnx" name="input_format"/>ONNX
+            <input type="radio" id="radio_mmdet" name="input_format" onclick="select_input_format()" checked/>mmdetection
+            <input type="radio" id="radio_mmcls" name="input_format" onclick="select_input_format()"/>mmclassification
+            <input type="radio" id="radio_onnx" name="input_format" onclick="select_input_format()"/>ONNX
+
+            <!-- mmdetection输入 -->
+            <div class="input_upload" id="input_mmdet">
+                <form>
+                    <label class="upload_btn" for="mmdet_config">选择配置文件</label>
+                    <input class="upload_input" type="file" id="mmdet_config" accept="application/json">
+                </form>
+                <br>
+                <form>
+                    <label class="upload_btn" for="mmdet_pth">选择权重文件</label>
+                    <input class="upload_input" type="file" id="mmdet_pth" accept=".pth" >
+                </form>
+            </div>
+
+            <!-- mmclassification输入 -->
+            <div class="input_upload" id="input_mmcls" style="display: none">
+                <form>
+                    <label class="upload_btn" for="mmcls_config">选择配置文件</label>
+                    <input class="upload_input" type="file" id="mmcls_config" accept="application/json" >
+                </form>
+                <br>
+                <form>
+                    <label class="upload_btn" for="mmcls_pth">选择权重文件</label>
+                    <input class="upload_input" type="file" id="mmcls_pth" accept=".pth" >
+                </form>
+            </div>
+
+            <!-- onnx输入 -->
+            <div class="input_upload" id="input_onnx" style="display: none">
+                <form>
+                    <label class="upload_btn" for="onnx_file">选择权重文件</label>
+                    <input class="upload_input" type="file" id="onnx_file" accept=".onnx" >
+                </form>
+            </div>
 
             <p>输出格式：</p>
             <input type="radio" id="output_nnie" name="output_format" checked/>NNIE
@@ -31,6 +65,7 @@
             <input type="radio" id="output_onnx" name="output_format"/>ONNX
 
             <p>转换参数：</p>
+
             <button id="convert_btn">转换</button>
         </div>
     </div>
