@@ -16,19 +16,67 @@ body{
 }
 
 .navi_btns{
-    margin-left: 90%;
+    /*margin-left: 90%;*/
+    float: right;
     width: auto;
 }
 
 .viewport{
+    /*margin: 0;*/
     margin-top: 50px;
+    width: 100%;
+    padding: 0;
+    position: fixed;
 }
 
 .main{
     position: relative;
     margin-left: 20%;
-    /*margin-right: 20%;*/
+    margin-right: 0;
+    /*float: none;*/
+    overflow: hidden;
     width: auto;
+    display: inline-block;
+}
+
+.history{
+    position: absolute;
+    float: right;
+    right: 0;
+    height: 100%;
+    display: inline-block;
+}
+
+.history table{
+    /*border: 1px solid black;*/
+    border-collapse: collapse;
+    text-align: center;
+    width: 300px;
+    table-layout: fixed;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.history table tbody{
+    border-spacing: 0;
+}
+
+.history table caption{
+    background-color: #3f3f3f;
+    color: white;
+}
+
+.history tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.history tr:hover {
+    background-color: #ddd;
+}
+
+.history th {
+    background-color: #3f3f3f;
+    color: white;
 }
 
 #convert_btn{
@@ -36,10 +84,15 @@ body{
     left: 50%;
 }
 
+.input_upload form{
+    display: inline-block;
+    margin: 10px;
+}
+
 .upload_btn{
     padding:3px;
     background: #01AAED;
-    color: #fff
+    color: #fff;
 }
 
 .upload_btn:hover {
@@ -50,7 +103,14 @@ body{
     margin-top: 10px;
 }
 
+.input_upload h5{
+    display: inline;
+}
+
 .upload_input{
-    position: absolute;
-    clip: rect(0 0 0 0);
+    display: none;
+}
+
+.upload_hidden{
+    display: none;
 }

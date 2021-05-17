@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}">
-    <script type=text/javascript src="{{
-    url_for('static', filename='js/index.js') }}"></script>
+    <script type=text/javascript src="{{ url_for('static', filename='js/index.js') }}"></script>
     <title>模型转换: {{ username }}</title>
 </head>
-<body>
+<body onload="select_input_format()">
     <!-- 导航栏 -->
     <nav class="navigator">
         <!-- 按钮组 -->
@@ -19,6 +18,7 @@
     <div class="viewport">
         <!-- 转换 -->
         <div class="main">
+            <hr/>
             <!-- 输入格式 -->
             <p>输入格式：</p>
             <input type="radio" id="radio_mmdet" name="input_format" onclick="select_input_format()" checked/>mmdetection
@@ -27,46 +27,79 @@
 
             <!-- mmdetection输入 -->
             <div class="input_upload" id="input_mmdet">
-                <form>
+                <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmdet_config">选择配置文件</label>
-                    <input class="upload_input" type="file" id="mmdet_config" accept="application/json">
+                    <input class="upload_hidden" type="text" name="type" value="mmdet">
+                    <input class="upload_input" type="file" id="mmdet_config" name="mmdet_config" accept="application/json" onchange="form.submit()">
                 </form>
                 <br>
-                <form>
+                <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmdet_pth">选择权重文件</label>
-                    <input class="upload_input" type="file" id="mmdet_pth" accept=".pth" >
+                    <input class="upload_hidden" type="text" name="type" value="mmdet">
+                    <input class="upload_input" type="file" id="mmdet_pth" name="mmdet_pth" accept=".pth" onchange="form.submit()">
                 </form>
             </div>
 
             <!-- mmclassification输入 -->
             <div class="input_upload" id="input_mmcls" style="display: none">
-                <form>
+                <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmcls_config">选择配置文件</label>
-                    <input class="upload_input" type="file" id="mmcls_config" accept="application/json" >
+                    <input class="upload_hidden" type="text" name="type" value="mmcls">
+                    <input class="upload_input" type="file" id="mmcls_config" name="mmcls_config" accept="application/json" onchange="form.submit()">
                 </form>
                 <br>
-                <form>
+                <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmcls_pth">选择权重文件</label>
-                    <input class="upload_input" type="file" id="mmcls_pth" accept=".pth" >
+                    <input class="upload_hidden" type="text" name="type" value="mmcls">
+                    <input class="upload_input" type="file" id="mmcls_pth" name="mmcls_pth" accept=".pth" onchange="form.submit()">
                 </form>
             </div>
 
             <!-- onnx输入 -->
             <div class="input_upload" id="input_onnx" style="display: none">
-                <form>
+                <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="onnx_file">选择权重文件</label>
-                    <input class="upload_input" type="file" id="onnx_file" accept=".onnx" >
+                    <input class="upload_hidden" type="text" name="type" value="onnx">
+                    <input class="upload_input" type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange="form.submit()">
                 </form>
             </div>
+
+            <hr/>
 
             <p>输出格式：</p>
             <input type="radio" id="output_nnie" name="output_format" checked/>NNIE
             <input type="radio" id="output_tengine" name="output_format"/>Tengine
             <input type="radio" id="output_onnx" name="output_format"/>ONNX
 
+            <hr/>
             <p>转换参数：</p>
 
+            <hr/>
             <button id="convert_btn">转换</button>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="history">
+            <table>
+                <caption>History</caption>
+                <tbody>
+                <tr>
+                    <th>Date</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>2</td>
+                    <td>3</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>5</td>
+                    <td>6</td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
