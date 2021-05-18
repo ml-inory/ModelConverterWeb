@@ -16,7 +16,7 @@ body{
 }
 
 .navi_btns{
-    /*margin-left: 90%;*/
+    margin-right: 5%;
     float: right;
     width: auto;
 }
@@ -32,51 +32,24 @@ body{
 .main{
     position: relative;
     margin-left: 20%;
-    margin-right: 0;
     /*float: none;*/
     overflow: hidden;
-    width: auto;
+    width: 60%;
     display: inline-block;
 }
 
 .history{
-    position: absolute;
-    float: right;
-    right: 0;
-    height: 100%;
-    display: inline-block;
-}
-
-.history table{
-    /*border: 1px solid black;*/
-    border-collapse: collapse;
-    text-align: center;
-    width: 300px;
-    table-layout: fixed;
-    overflow-x: hidden;
-    overflow-y: auto;
-}
-
-.history table tbody{
-    border-spacing: 0;
-}
-
-.history table caption{
+    /*position: absolute;*/
+    /*float: right;*/
+    /*right: 0;*/
+    /*height: 100%;*/
+    /*display: inline-block;*/
+    overflow: hidden;
     background-color: #3f3f3f;
     color: white;
-}
-
-.history tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
-
-.history tr:hover {
-    background-color: #ddd;
-}
-
-.history th {
-    background-color: #3f3f3f;
-    color: white;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
 }
 
 #convert_btn{
@@ -113,4 +86,14 @@ body{
 
 .upload_hidden{
     display: none;
+}
+
+.history_title{
+    float: left;
+    margin-left: 2%;
+    height: auto;
+}
+
+.history_title p {
+    margin: 0;
 }
