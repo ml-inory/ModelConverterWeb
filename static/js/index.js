@@ -6,7 +6,9 @@ var inputDivIDArr = new Array("input_mmdet", "input_mmcls", "input_onnx");
 var supportInputFormat = new Array("mmdet", "mmcls", "onnx");
 
 // 设置输入格式radio
-function set_input_format(input_format) {
+function set_input_format(input_format = "mmdet") {
+    if (input_format == "")
+        input_format = "mmdet";
     var radio_name = "radio_input_" + input_format;
     var radio = document.getElementById(radio_name);
     // console.log("radio: " + radio_name);
@@ -23,7 +25,9 @@ function set_input_format(input_format) {
     }
 }
 
-function set_output_format(output_format) {
+function set_output_format(output_format = "nnie") {
+    if (output_format == "")
+        output_format = "nnie";
     var radio = document.getElementById("radio_output_" + output_format);
     if (radio) {
         // console.log("set radio " + output_format)

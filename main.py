@@ -9,6 +9,7 @@ from flask import Flask, render_template, Response
 from flask_login import LoginManager, current_user, login_required
 from flask import render_template, redirect, url_for, request, flash, send_from_directory
 from flask_login import login_user, logout_user
+from flask_socketio import SocketIO, emit
 from elements.LoginForm import LoginForm
 from werkzeug.utils import secure_filename
 from db import *
@@ -25,6 +26,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 # 初始化数据库
 db = init_db('users', app)
+# 初始化socket
+socketio = SocketIO(app)
 
 # 实例化登录管理对象
 login_manager = LoginManager()
@@ -32,9 +35,14 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# 初始用户数据
+INITIAL_USER_DATA = {
+    'input_format': 'mmdet',
+    'output_format': 'nnie',
+    'output_name': '',
+}
 # 用户数据
-USER_DATA = {'input_format': 'mmdet',
-             'output_format': 'nnie'}
+USER_DATA = INITIAL_USER_DATA
 
 DBUser.register(username='rzyang', password='123')
 
@@ -43,7 +51,7 @@ DBUser.register(username='rzyang', password='123')
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', username=current_user.username)
+    return render_template('index.html', username=current_user.username, **USER_DATA)
 
 # 处理GET/POST请求
 @app.route('/', methods=['GET', 'POST'])
@@ -59,6 +67,10 @@ def process_form():
                 save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(save_path)
                 USER_DATA[k] = filename
+                # 自动设置输出名称
+                if USER_DATA['output_name'] == '':
+                    USER_DATA['output_name'] = filename.split('.')[0]
+
         print(USER_DATA)
         return render_template('index.html', username=current_user.username, **USER_DATA)
     return redirect(request.url)
@@ -93,14 +105,18 @@ def logout():
     user.authenticated = False
     db.session.add(user)
     db.session.commit()
-    USER_DATA = {'input_format': 'mmdet',
-                 'output_format': 'nnie'}
+    USER_DATA = INITIAL_USER_DATA
     logout_user()
     return redirect(url_for('login'))
 
 @login_manager.user_loader  # 定义获取登录用户的方法
 def load_user(user_id):
     return DBUser.get_user_by_id(int(user_id))
+
+@socketio.on('disconnect')
+def disconnect_user():
+    USER_DATA = INITIAL_USER_DATA
+    print('disconnect')
 
 if __name__ == '__main__':
     app.run(debug=True, port=9394)
