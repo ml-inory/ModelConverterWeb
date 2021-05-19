@@ -6,7 +6,7 @@
     <script type=text/javascript src="{{ url_for('static', filename='js/index.js') }}"></script>
     <title>模型转换: {{ username }}</title>
 </head>
-<body onload="set_input_format('{{ input_format }}')">
+<body onload="set_input_format('{{ input_format }}'); set_output_format('{{ output_format }}')">
     <!-- 导航栏 -->
     <nav class="navigator">
         <!-- 按钮组 -->
@@ -21,22 +21,23 @@
             <hr/>
             <!-- 输入格式 -->
             <p>输入格式：</p>
-            <input type="radio" id="radio_mmdet" name="input_format" onclick="select_input_format()" checked/>mmdetection
-            <input type="radio" id="radio_mmcls" name="input_format" onclick="select_input_format()"/>mmclassification
-            <input type="radio" id="radio_onnx" name="input_format" onclick="select_input_format()"/>ONNX
+            <form method="post" enctype="multipart/form-data">
+                <input type="radio" id="radio_input_mmdet" name="input_format" value="mmdet" onclick="form.submit();" checked/>mmdetection
+                <input type="radio" id="radio_input_mmcls" name="input_format" value="mmcls" onclick="form.submit();"/>mmclassification
+                <input type="radio" id="radio_input_onnx"  name="input_format" value="onnx"  onclick="form.submit();"/>ONNX
+            </form>
+
 
             <!-- mmdetection输入 -->
             <div class="input_upload" id="input_mmdet">
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmdet_config">选择配置文件</label>
-                    <input class="upload_hidden" type="text" name="input_format" value="mmdet">
                     <input class="upload_input" type="file" id="mmdet_config" name="mmdet_config" accept="application/json" onchange="form.submit()">
                 </form>
                 <p>{{ mmdet_config }}</p>
                 <br>
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmdet_pth">选择权重文件</label>
-                    <input class="upload_hidden" type="text" name="input_format" value="mmdet">
                     <input class="upload_input" type="file" id="mmdet_pth" name="mmdet_pth" accept=".pth" onchange="form.submit()">
                 </form>
                 <p>{{ mmdet_pth }}</p>
@@ -46,14 +47,12 @@
             <div class="input_upload" id="input_mmcls" style="display: none">
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmcls_config">选择配置文件</label>
-                    <input class="upload_hidden" type="text" name="input_format" value="mmcls">
                     <input class="upload_input" type="file" id="mmcls_config" name="mmcls_config" accept="application/json" onchange="form.submit()">
                 </form>
                 <p>{{ mmcls_config }}</p>
                 <br>
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmcls_pth">选择权重文件</label>
-                    <input class="upload_hidden" type="text" name="input_format" value="mmcls">
                     <input class="upload_input" type="file" id="mmcls_pth" name="mmcls_pth" accept=".pth" onchange="form.submit()">
                 </form>
                 <p>{{ mmcls_pth }}</p>
@@ -63,7 +62,6 @@
             <div class="input_upload" id="input_onnx" style="display: none">
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="onnx_file">选择权重文件</label>
-                    <input class="upload_hidden" type="text" name="input_format" value="onnx">
                     <input class="upload_input" type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange="form.submit()">
                 </form>
                 <p>{{ onnx_file }}</p>
@@ -72,9 +70,19 @@
             <hr/>
 
             <p>输出格式：</p>
-            <input type="radio" id="output_nnie" name="output_format" checked/>NNIE
-            <input type="radio" id="output_tengine" name="output_format"/>Tengine
-            <input type="radio" id="output_onnx" name="output_format"/>ONNX
+            <form method=post enctype=multipart/form-data>
+                <input type="radio" id="radio_output_nnie"    name="output_format" value="nnie"       onclick="form.submit()" checked/>NNIE
+                <input type="radio" id="radio_output_tengine" name="output_format" value="tengine"    onclick="form.submit()"/>Tengine
+                <input type="radio" id="radio_output_onnx"    name="output_format" value="onnx"       onclick="form.submit()"/>ONNX
+            </form>
+
+            <p></p>
+
+            <form method="post" enctype="multipart/form-data">
+                <label for="output_name">输出名称：</label>
+                <input type="text" id="output_name" name="output_name" onfocusout="form.submit()" value="{{ output_name }}">
+            </form>
+
 
             <hr/>
             <p>转换参数：</p>

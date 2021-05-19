@@ -32,14 +32,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# 支持的输入格式
-SUPPORTED_INPUT_FORMAT = ('mmdet', 'mmcls', 'onnx')
-INPUT_FILE = {
-    'input_format': '',
-    'mmdet': {'mmdet_config': '', 'mmdet_pth': ''},
-    'mmcls': {'mmcls_config': '', 'mmcls_pth': ''},
-    'onnx':  {'onnx_file': ''}
-}
+# 用户数据
+USER_DATA = {'input_format': 'mmdet',
+             'output_format': 'nnie'}
 
 DBUser.register(username='rzyang', password='123')
 
@@ -50,42 +45,23 @@ DBUser.register(username='rzyang', password='123')
 def index():
     return render_template('index.html', username=current_user.username)
 
-# 处理上传表单
-# 返回dict或者None
-def process_upload_request(request):
-    input_format = request.form['input_format']
-    if input_format not in SUPPORTED_INPUT_FORMAT:
-        return False
-
-    INPUT_FILE['input_format'] = input_format
-    for k in INPUT_FILE[input_format].keys():
-        if k in request.files:
+# 处理GET/POST请求
+@app.route('/', methods=['GET', 'POST'])
+def process_form():
+    if request.method == 'POST':
+        form_keys = request.form.keys()
+        for k in form_keys:
+            USER_DATA[k] = request.form[k]
+        for k in request.files:
             file = request.files[k]
             if file:
                 filename = secure_filename(file.filename)
                 save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(save_path)
-                INPUT_FILE[input_format][k] = filename
-            return True
-    return False
-
-# 上传文件
-@app.route('/', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        if process_upload_request(request): # 成功
-            input_format = INPUT_FILE['input_format']
-            return render_template('index.html', username=current_user.username, input_format=input_format, **INPUT_FILE[input_format])
-
+                USER_DATA[k] = filename
+        print(USER_DATA)
+        return render_template('index.html', username=current_user.username, **USER_DATA)
     return redirect(request.url)
-
-# 上传成功后的处理
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    print(os.path.basename(filename))
-    return "success", 200
-    # return redirect(url_for('show_weight_file', weight_file=filename))
-    # return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/login/', methods=('GET', 'POST'))  # 登录
 def login():
@@ -117,6 +93,8 @@ def logout():
     user.authenticated = False
     db.session.add(user)
     db.session.commit()
+    USER_DATA = {'input_format': 'mmdet',
+                 'output_format': 'nnie'}
     logout_user()
     return redirect(url_for('login'))
 
