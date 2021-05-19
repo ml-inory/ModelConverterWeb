@@ -6,7 +6,7 @@
     <script type=text/javascript src="{{ url_for('static', filename='js/index.js') }}"></script>
     <title>模型转换: {{ username }}</title>
 </head>
-<body onload="select_input_format()">
+<body onload="set_input_format('{{ input_format }}')">
     <!-- 导航栏 -->
     <nav class="navigator">
         <!-- 按钮组 -->
@@ -32,12 +32,14 @@
                     <input class="upload_hidden" type="text" name="input_format" value="mmdet">
                     <input class="upload_input" type="file" id="mmdet_config" name="mmdet_config" accept="application/json" onchange="form.submit()">
                 </form>
+                <p>{{ mmdet_config }}</p>
                 <br>
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmdet_pth">选择权重文件</label>
                     <input class="upload_hidden" type="text" name="input_format" value="mmdet">
                     <input class="upload_input" type="file" id="mmdet_pth" name="mmdet_pth" accept=".pth" onchange="form.submit()">
                 </form>
+                <p>{{ mmdet_pth }}</p>
             </div>
 
             <!-- mmclassification输入 -->
@@ -47,12 +49,14 @@
                     <input class="upload_hidden" type="text" name="input_format" value="mmcls">
                     <input class="upload_input" type="file" id="mmcls_config" name="mmcls_config" accept="application/json" onchange="form.submit()">
                 </form>
+                <p>{{ mmcls_config }}</p>
                 <br>
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmcls_pth">选择权重文件</label>
                     <input class="upload_hidden" type="text" name="input_format" value="mmcls">
                     <input class="upload_input" type="file" id="mmcls_pth" name="mmcls_pth" accept=".pth" onchange="form.submit()">
                 </form>
+                <p>{{ mmcls_pth }}</p>
             </div>
 
             <!-- onnx输入 -->
@@ -62,6 +66,7 @@
                     <input class="upload_hidden" type="text" name="input_format" value="onnx">
                     <input class="upload_input" type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange="form.submit()">
                 </form>
+                <p>{{ onnx_file }}</p>
             </div>
 
             <hr/>

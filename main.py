@@ -33,11 +33,12 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # 支持的输入格式
-INPUT_FORMAT = ('mmdet', 'mmcls', 'onnx')
+SUPPORTED_INPUT_FORMAT = ('mmdet', 'mmcls', 'onnx')
 INPUT_FILE = {
-    'mmdet': ('mmdet_config', 'mmdet_pth'),
-    'mmcls': ('mmcls_config', 'mmcls_pth'),
-    'onnx': ('onnx_file', )
+    'input_format': '',
+    'mmdet': {'mmdet_config': '', 'mmdet_pth': ''},
+    'mmcls': {'mmcls_config': '', 'mmcls_pth': ''},
+    'onnx':  {'onnx_file': ''}
 }
 
 DBUser.register(username='rzyang', password='123')
@@ -49,47 +50,33 @@ DBUser.register(username='rzyang', password='123')
 def index():
     return render_template('index.html', username=current_user.username)
 
-@app.route('/<weight_file>')
-@login_required
-def show_weight_file(weight_file):
-    return render_template('index.html', username=current_user.username, weight_file=weight_file)
-
 # 处理上传表单
 # 返回dict或者None
-# def parse_upload_form(request):
-#     input_format = request.form['type']
-#     if input_format not in INPUT_FORMAT:
-#         return None
-#
-#     result = {}
-#     result['input_format'] = input_format
-#     if input_format == 'mmdet':
-#         if
+def process_upload_request(request):
+    input_format = request.form['input_format']
+    if input_format not in SUPPORTED_INPUT_FORMAT:
+        return False
+
+    INPUT_FILE['input_format'] = input_format
+    for k in INPUT_FILE[input_format].keys():
+        if k in request.files:
+            file = request.files[k]
+            if file:
+                filename = secure_filename(file.filename)
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(save_path)
+                INPUT_FILE[input_format][k] = filename
+            return True
+    return False
 
 # 上传文件
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        # check if the post request has the file part
-        print(type(request.files))
-        print(list(request.files.lists())[0])
-        file_type = request.form['input_format']
-        print(file_type)
-        if 'onnx_file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['onnx_file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file:
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-            # return redirect(url_for('uploaded_file', filename=filename))
-            return redirect(request.url)
+        if process_upload_request(request): # 成功
+            input_format = INPUT_FILE['input_format']
+            return render_template('index.html', username=current_user.username, input_format=input_format, **INPUT_FILE[input_format])
+
     return redirect(request.url)
 
 # 上传成功后的处理
