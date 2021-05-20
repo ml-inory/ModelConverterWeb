@@ -5,11 +5,10 @@ Date: 2021/05/12
 Desc: main
 """
 import os
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, session
 from flask_login import LoginManager, current_user, login_required
 from flask import render_template, redirect, url_for, request, flash, send_from_directory
 from flask_login import login_user, logout_user
-from flask_socketio import SocketIO, emit
 from elements.LoginForm import LoginForm
 from werkzeug.utils import secure_filename
 from db import *
@@ -26,8 +25,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 # 初始化数据库
 db = init_db('users', app)
-# 初始化socket
-socketio = SocketIO(app)
 
 # 实例化登录管理对象
 login_manager = LoginManager()
@@ -42,37 +39,47 @@ INITIAL_USER_DATA = {
     'output_name': '',
 }
 # 用户数据
-USER_DATA = INITIAL_USER_DATA
+USER_DATA = {}
 
 DBUser.register(username='rzyang', password='123')
+DBUser.register(username='admin', password='123')
 
+def init_user_data(username):
+    USER_DATA[username] = INITIAL_USER_DATA
 
+def current_user_data():
+    return USER_DATA[current_user.username]
 
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', username=current_user.username, **USER_DATA)
+    if current_user.username not in USER_DATA.keys():
+        init_user_data(current_user.username)
+    print(current_user.username)
+    return render_template('index.html', username=current_user.username, **current_user_data())
 
 # 处理GET/POST请求
 @app.route('/', methods=['GET', 'POST'])
+@login_required
 def process_form():
     if request.method == 'POST':
         form_keys = request.form.keys()
+        user_data = current_user_data()
         for k in form_keys:
-            USER_DATA[k] = request.form[k]
+            user_data[k] = request.form[k]
         for k in request.files:
             file = request.files[k]
             if file:
                 filename = secure_filename(file.filename)
                 save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(save_path)
-                USER_DATA[k] = filename
+                user_data[k] = filename
                 # 自动设置输出名称
-                if USER_DATA['output_name'] == '':
-                    USER_DATA['output_name'] = filename.split('.')[0]
+                if user_data['output_name'] == '':
+                    user_data['output_name'] = filename.split('.')[0]
 
-        print(USER_DATA)
-        return render_template('index.html', username=current_user.username, **USER_DATA)
+        print(user_data)
+        return render_template('index.html', username=current_user.username, **user_data)
     return redirect(request.url)
 
 @app.route('/login/', methods=('GET', 'POST'))  # 登录
@@ -82,18 +89,22 @@ def login():
     if form.validate_on_submit():
         user_name = form.username.data
         password = form.password.data
-        # user_info = get_user(user_name)  # 从用户数据中查找用户记录
         user = DBUser.get_user_by_name(user_name)
         if user is None:
             emsg = "用户名或密码有误"
         else:
-            # user = User(user_info)  # 创建用户实体
             if user.verify_password(password):  # 校验密码
                 user.authenticated = True
+                user.refresh_session()
                 db.session.add(user)
                 db.session.commit()
-                login_user(user)  # 创建用户 Session
-                return redirect(request.args.get('next') or url_for('index'))
+                if login_user(user):  # 创建用户 Session
+                    print('Login Success,    ', current_user.username)
+                    session['username'] = current_user.username
+                    init_user_data(current_user.username)
+                    return redirect(request.args.get('next') or url_for('index'))
+                else:
+                    return render_template('login.html', form=form, emsg=emsg)
             else:
                 emsg = "用户名或密码有误"
     return render_template('login.html', form=form, emsg=emsg)
@@ -105,18 +116,14 @@ def logout():
     user.authenticated = False
     db.session.add(user)
     db.session.commit()
-    USER_DATA = INITIAL_USER_DATA
+    init_user_data(current_user.username)
+    session.pop('username', None)
     logout_user()
     return redirect(url_for('login'))
 
 @login_manager.user_loader  # 定义获取登录用户的方法
-def load_user(user_id):
-    return DBUser.get_user_by_id(int(user_id))
-
-@socketio.on('disconnect')
-def disconnect_user():
-    USER_DATA = INITIAL_USER_DATA
-    print('disconnect')
+def load_user(session_token):
+    return DBUser.query.filter_by(session_token=session_token).first()
 
 if __name__ == '__main__':
-    app.run(debug=True, port=9394)
+    app.run(host="0.0.0.0", debug=True, port=9394)

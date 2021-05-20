@@ -6,6 +6,7 @@ Desc: database
 """
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 # 创建数据库
 db = SQLAlchemy()
@@ -16,9 +17,9 @@ class DBUser(db.Model):
     __tablename__ = 'user'
 
     id = db.Column(db.Integer, primary_key=True)
+    session_token = db.Column(db.String(24), index=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(80), unique=False, nullable=False)
-    input_format = db.Column(db.String(16), unique=False, nullable=True)
     authenticated = db.Column(db.Boolean, default=False)
 
     def is_active(self):
@@ -44,7 +45,8 @@ class DBUser(db.Model):
     def register(username, password):
         if DBUser.get_user_by_name(username) is not None:
             return False
-        new_user = DBUser(username=username, password=generate_password_hash(password))
+        session_token = os.urandom(12).hex()
+        new_user = DBUser(session_token=session_token, username=username, password=generate_password_hash(password))
         db.session.add(new_user)
         db.session.commit()
         return True
@@ -56,6 +58,12 @@ class DBUser(db.Model):
     @staticmethod
     def get_user_by_name(username):
         return DBUser.query.filter_by(username=username).first()
+
+    def refresh_session(self):
+        self.session_token = os.urandom(12).hex()
+
+    def get_id(self):
+        return str(self.session_token)
 
     def verify_password(self, password):
         return check_password_hash(self.password, password)
