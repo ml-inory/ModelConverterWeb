@@ -44,18 +44,19 @@ USER_DATA = {}
 DBUser.register(username='rzyang', password='123')
 DBUser.register(username='admin', password='123')
 
-def init_user_data(username):
-    USER_DATA[username] = INITIAL_USER_DATA
+def init_user_data():
+    username = current_user.username
+    session['username'] = username
+    session['data'] = INITIAL_USER_DATA
 
 def current_user_data():
-    return USER_DATA[current_user.username]
+    return session['data']
 
 @app.route('/')
 @login_required
 def index():
-    if current_user.username not in USER_DATA.keys():
-        init_user_data(current_user.username)
-    print(current_user.username)
+    if current_user.username not in session.keys():
+        init_user_data()
     return render_template('index.html', username=current_user.username, **current_user_data())
 
 # 处理GET/POST请求
@@ -79,7 +80,8 @@ def process_form():
                     user_data['output_name'] = filename.split('.')[0]
 
         print(user_data)
-        return render_template('index.html', username=current_user.username, **user_data)
+        session['data'] = user_data
+        return render_template('index.html', username=current_user.username, **current_user_data())
     return redirect(request.url)
 
 @app.route('/login/', methods=('GET', 'POST'))  # 登录
@@ -100,8 +102,7 @@ def login():
                 db.session.commit()
                 if login_user(user):  # 创建用户 Session
                     print('Login Success,    ', current_user.username)
-                    session['username'] = current_user.username
-                    init_user_data(current_user.username)
+                    init_user_data()
                     return redirect(request.args.get('next') or url_for('index'))
                 else:
                     return render_template('login.html', form=form, emsg=emsg)
@@ -116,8 +117,7 @@ def logout():
     user.authenticated = False
     db.session.add(user)
     db.session.commit()
-    init_user_data(current_user.username)
-    session.pop('username', None)
+    session.clear()
     logout_user()
     return redirect(url_for('login'))
 
