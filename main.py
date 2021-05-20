@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 from db import *
 
 # 上传文件路径
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'upload')
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'input')
 
 # 创建Flask应用
 app = Flask(__name__)
@@ -37,6 +37,11 @@ INITIAL_USER_DATA = {
     'input_format': 'mmdet',
     'output_format': 'nnie',
     'output_name': '',
+
+    # nnie参数
+    'rgb_order': 'RGB',
+    'nnie_input_width': 640,
+    'nnie_input_height': 480,
 }
 # 用户数据
 USER_DATA = {}
@@ -72,15 +77,17 @@ def process_form():
             file = request.files[k]
             if file:
                 filename = secure_filename(file.filename)
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], session['username']), exist_ok=True)
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], session['username'], filename)
                 file.save(save_path)
                 user_data[k] = filename
                 # 自动设置输出名称
                 if user_data['output_name'] == '':
                     user_data['output_name'] = filename.split('.')[0]
 
-        print(user_data)
         session['data'] = user_data
+        print(session)
+
         return render_template('index.html', username=current_user.username, **current_user_data())
     return redirect(request.url)
 
@@ -97,11 +104,11 @@ def login():
         else:
             if user.verify_password(password):  # 校验密码
                 user.authenticated = True
-                user.refresh_session()
+                user.refresh_session() # 刷新session，以禁止多地登录
                 db.session.add(user)
                 db.session.commit()
                 if login_user(user):  # 创建用户 Session
-                    print('Login Success,    ', current_user.username)
+                    # print('Login Success,    ', current_user.username)
                     init_user_data()
                     return redirect(request.args.get('next') or url_for('index'))
                 else:

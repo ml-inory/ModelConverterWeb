@@ -97,3 +97,7 @@ body{
 .history_title p {
     margin: 0;
 }
+
+.convert_param input[type="text"] {
+    max-width: 50px;
+}

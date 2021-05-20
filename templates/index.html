@@ -86,9 +86,52 @@
 
             <hr/>
             <p>转换参数：</p>
+            <form enctype="multipart/form-data" method="post" id="convert_param_form">
+                <div class="convert_param">
+                    <!-- 输入尺寸 -->
+                    <label>输入尺寸：</label>
+                    <label for="input_width">W:</label>
+                    <input type="text" id="input_width" name="input_width" maxlength="4" value="{{ input_width }}">
+                    <label for="input_height">H:</label>
+                    <input type="text" id="input_height" name="input_height" maxlength="4" value="{{ input_height }}">
+                </div>
+
+                <p></p>
+
+                <div class="convert_param" id="param_nnie" style="display: block">
+                    <!-- RGB顺序 -->
+                    <label>RGB Order：</label>
+                    <select name="rgb_order" id="rgb_order">
+                        <option value="" disabled selected style="display:none;">Select an order</option>
+                        <option value="RGB">RGB</option>
+                        <option value="BGR">BGR</option>
+                    </select>
+                    {% if rgb_order %}
+                        <script>
+                            document.getElementById("rgb_order").value = "{{ rgb_order }}";
+                        </script>
+                    {% endif %}
+
+                    <p></p>
+
+                    <!-- mean scale -->
+                    <label>mean: </label>
+                    <input type="text" id="nnie_mean" name="nnie_mean" value="{{ nnie_mean }}" style="max-width: 100px">
+                    <label>scale: </label>
+                    <input type="text" id="nnie_scale" name="nnie_scale" value="{{ nnie_scale }}" style="max-width: 100px">
+                </div>
+
+                <div class="convert_param" id="param_tengine" style="display: none">
+
+                </div>
+
+                <div class="convert_param" id="param_onnx" style="display: none">
+
+                </div>
+            </form>
 
             <hr/>
-            <button id="convert_btn">转换</button>
+            <button id="convert_btn" form="convert_param_form">转换</button>
         </div>
 
         <!-- 历史记录 -->
