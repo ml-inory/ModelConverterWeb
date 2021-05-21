@@ -42,6 +42,8 @@ INITIAL_USER_DATA = {
     'rgb_order': 'RGB',
     'nnie_input_width': 640,
     'nnie_input_height': 480,
+    'nnie_mean': 0,
+    'nnie_scale': 1.0,
 }
 # 用户数据
 USER_DATA = {}
@@ -133,4 +135,4 @@ def load_user(session_token):
     return DBUser.query.filter_by(session_token=session_token).first()
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", debug=True, port=9394)
+    app.run(host="0.0.0.0", debug=True, port=4396)

@@ -4,5 +4,4 @@ Flask-Login
 Flask-WTF
 Flask-SQLAlchemy
 flask-socketio
-PyMySQL
 Werkzeug

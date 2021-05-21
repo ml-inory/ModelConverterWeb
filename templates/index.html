@@ -34,13 +34,13 @@
                     <label class="upload_btn" for="mmdet_config">选择配置文件</label>
                     <input class="upload_input" type="file" id="mmdet_config" name="mmdet_config" accept="application/json" onchange="form.submit()">
                 </form>
-                <p>{{ mmdet_config }}</p>
+                <p id="mmdet_config_name">{{ mmdet_config }}</p>
                 <br>
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmdet_pth">选择权重文件</label>
                     <input class="upload_input" type="file" id="mmdet_pth" name="mmdet_pth" accept=".pth" onchange="form.submit()">
                 </form>
-                <p>{{ mmdet_pth }}</p>
+                <p id="mmdet_pth_name">{{ mmdet_pth }}</p>
             </div>
 
             <!-- mmclassification输入 -->
@@ -49,13 +49,13 @@
                     <label class="upload_btn" for="mmcls_config">选择配置文件</label>
                     <input class="upload_input" type="file" id="mmcls_config" name="mmcls_config" accept="application/json" onchange="form.submit()">
                 </form>
-                <p>{{ mmcls_config }}</p>
+                <p id="mmcls_config_name">{{ mmcls_config }}</p>
                 <br>
                 <form method=post enctype=multipart/form-data>
                     <label class="upload_btn" for="mmcls_pth">选择权重文件</label>
                     <input class="upload_input" type="file" id="mmcls_pth" name="mmcls_pth" accept=".pth" onchange="form.submit()">
                 </form>
-                <p>{{ mmcls_pth }}</p>
+                <p id="mmcls_pth_name">{{ mmcls_pth }}</p>
             </div>
 
             <!-- onnx输入 -->
@@ -64,7 +64,7 @@
                     <label class="upload_btn" for="onnx_file">选择权重文件</label>
                     <input class="upload_input" type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange="form.submit()">
                 </form>
-                <p>{{ onnx_file }}</p>
+                <p id="onnx_file_name">{{ onnx_file }}</p>
             </div>
 
             <hr/>
@@ -119,6 +119,12 @@
                     <input type="text" id="nnie_mean" name="nnie_mean" value="{{ nnie_mean }}" style="max-width: 100px">
                     <label>scale: </label>
                     <input type="text" id="nnie_scale" name="nnie_scale" value="{{ nnie_scale }}" style="max-width: 100px">
+
+                    <p></p>
+
+                    <!-- image list -->
+                    <label>image list: </label>
+                    <input type="text" id="img_list" name="img_list" value="{{ img_list }}" style="max-width: 300px; width: 100%">
                 </div>
 
                 <div class="convert_param" id="param_tengine" style="display: none">
@@ -131,7 +137,7 @@
             </form>
 
             <hr/>
-            <button id="convert_btn" form="convert_param_form">转换</button>
+            <button id="convert_btn" onclick="convert();">转    换</button>
         </div>
 
         <!-- 历史记录 -->
