@@ -5,3 +5,10 @@ Flask-WTF
 Flask-SQLAlchemy
 flask-socketio
 Werkzeug
+
+mmcv-full
+mmdet
+mmcls
+onnx
+onnx-runtime
+onnx-simplify
