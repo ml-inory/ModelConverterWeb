@@ -1,0 +1,4 @@
+ERROR_CODE = {
+    'SUCCESS': 200,
+    'INVALID_UNAME_OR_PWD': 400
+}

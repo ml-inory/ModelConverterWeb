@@ -3,12 +3,14 @@ Flask-Session
 Flask-Login
 Flask-WTF
 Flask-SQLAlchemy
-flask-socketio
 Werkzeug
+flask-restful
+flask-jwt
+flask-jwt-extended
 
 mmcv-full
 mmdet
 mmcls
 onnx
 onnx-runtime
-onnx-simplify
+onnx-simplifier
