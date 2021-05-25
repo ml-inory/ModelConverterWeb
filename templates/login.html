@@ -1,38 +1,29 @@
-{% macro render_field(field) %} <!-- 定义字段宏 -->
-<dt>{{ field.label }}:
-<dd>{{ field(**kwargs)|safe }}
-    {% if field.errors %}
-    <ul class=errors>
-        {% for error in field.errors %}
-        <li>{{ error }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-</dd>
-{% endmacro %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/login.css') }}">
+    <link rel="stylesheet" type="text/css" href="../static/styles/login.css">
     <title>模型转换 ---- 登录</title>
 </head>
 <body>
 <div class="login">
-    <!-- 登录表单 -->
-    <form method="POST">
-        {{ form.csrf_token }}
-        <dl>
-            {{ render_field(form.username) }}
-            {{ render_field(form.password) }}
-        </dl>
+    <form method="post" enctype="multipart/form-data">
+        <div class="login_row">
+            <div class="col-1">
+                <label>用户名</label>
+                <label>密 码</label>
+            </div>
+            <div class="col-2">
+                <input type="text">
+                <input type="password">
+            </div>
+        </div>
 
-        {% if emsg %}  <!-- 如果有错误信息 则显示 -->
-        <h3> {{ emsg }}</h3>
-        {% endif %}
-        <input id="login_btn" type="submit" value="登录">
+        <label>记住我</label>
+        <input type="checkbox">
+
+        <input type="button" value="登录">
     </form>
 </div>
 </body>
