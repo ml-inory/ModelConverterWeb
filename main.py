@@ -145,13 +145,17 @@ class MCInput(Resource):
         weight = request.files.get('weight')
         if input_format not in SUPPORTED_INPUT_FORMAT:
             return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(input_format, SUPPORTED_INPUT_FORMAT)), 402)
+
         if input_format != 'onnx':
             if config is None:
                 return make_response(jsonify(msg='config file must be provided'), 402)
             config_filename = secure_filename(config.filename)
             if not config_filename.endswith('.json'):
                 return make_response(jsonify(msg='config file must be json'), 402)
-            config.save(os.path.join(app.config['UPLOAD_FOLDER'], username, config_filename))
+            config_path = os.path.join(app.config['UPLOAD_FOLDER'], username, config_filename)
+            config.save(config_path)
+            session['config_path'] = config_path
+
         if weight is None:
             return make_response(jsonify(msg='weight file must be provided'), 402)
         weight_filename = secure_filename(weight.filename)
@@ -161,9 +165,14 @@ class MCInput(Resource):
         else:
             if not weight_filename.endswith('.onnx'):
                 return make_response(jsonify(msg='weight file must be .onnx file'), 402)
-        weight.save(os.path.join(app.config['UPLOAD_FOLDER'], username, weight_filename))
+        weight_path = os.path.join(app.config['UPLOAD_FOLDER'], username, weight_filename)
+        weight.save(weight_path)
+
         response = make_response(jsonify(msg='Set input success'), ERROR_CODE['SUCCESS'])
+
         session['input_format'] = input_format
+        session['weight_path'] = weight_path
+
         return response
 
 
@@ -178,9 +187,42 @@ class MCOutput(Resource):
             return make_response(jsonify(msg='Both format and name must be provided'), 402)
         if output_format not in SUPPORTED_OUTPUT_FORMAT:
             return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(output_format, SUPPORTED_OUTPUT_FORMAT)), 402)
+
         session['output_format'] = output_format
         session['output_name'] = output_name
+
         return make_response(jsonify(msg='Set output success'), ERROR_CODE['SUCCESS'])
+
+
+# /convert
+class MCConvert(Resource):
+    @staticmethod
+    def check_params():
+        params = ('input_format', 'weight_path', 'output_format', 'output_name')
+        for k in params:
+            if session.get(k) is None:
+                return False, k
+        return True, ''
+
+    @login_required
+    @jwt_required()
+    def post(self):
+        flag, key = self.check_params()
+        if not flag:
+            return make_response(jsonify(msg='{} is not set.Please make sure /input and /output is post correctly before calling /convert'.format(key)), 402)
+
+        width = request.form.get('width', type=int, default=-1)
+        height = request.form.get('height', type=int, default=-1)
+        order = request.form.get('order', type=str, default='RGB')
+        mean = request.form.get('mean', type=int, default=0)
+        scale = request.form.get('scale', type=float, default=1.0)
+        img_archive = request.files.get('img_archive')
+
+        if session['output_format'] == 'nnie':
+            if img_archive is None:
+                return make_response(jsonify(msg='img_archive must be provided for NNIE'), 402)
+
+        return make_response(jsonify(msg='Convert {} to {} success'.format(session['input_format'], session['output_format'])), ERROR_CODE['SUCCESS'])
 
 
 api.add_resource(MCApi, BASE_URL)
@@ -189,6 +231,7 @@ api.add_resource(MCToken, BASE_URL + '/token')
 api.add_resource(MCLogout, BASE_URL + '/logout')
 api.add_resource(MCInput, BASE_URL + '/input')
 api.add_resource(MCOutput, BASE_URL + '/output')
+api.add_resource(MCConvert, BASE_URL + '/convert')
 
 if __name__ == '__main__':
     app.run(host="127.0.0.1", debug=True, port=4396)
