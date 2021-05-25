@@ -10,7 +10,7 @@ from flask_login import LoginManager, current_user, login_required, login_user, 
 from flask_restful import Resource, Api, reqparse
 from elements.LoginForm import LoginForm
 from werkzeug.utils import secure_filename
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt)
 from db import *
@@ -70,10 +70,12 @@ class MCLogin(Resource):
             return make_response(msg('password is not correct'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         # 存储在session
         session['username'] = user.username
-
+        # 计算token过期时间：当前时间+过期时长
+        exp_timestamp = int((datetime.utcnow() + app.config["JWT_ACCESS_TOKEN_EXPIRES"]).timestamp())
         return make_response(jsonify(msg='Login as {} success'.format(username),
                                      access_token=user.access_token,
-                                     refresh_token=user.refresh_token), ERROR_CODE['SUCCESS'])
+                                     refresh_token=user.refresh_token,
+                                     expiration=exp_timestamp), ERROR_CODE['SUCCESS'])
 
 
 # /token?username=
@@ -90,7 +92,7 @@ class MCToken(Resource):
             return make_response(msg('user {} does NOT exist'.format(session['username'])), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         user.refresh_token()
         # 获取token过期时间
-        exp_timestamp = get_jwt()["exp"]
+        exp_timestamp = int((datetime.utcnow() + app.config["JWT_ACCESS_TOKEN_EXPIRES"]).timestamp())
         return make_response(jsonify(msg='Refresh token success',
                                      access_token=user.access_token,
                                      expiration=exp_timestamp), ERROR_CODE['SUCCESS'])
