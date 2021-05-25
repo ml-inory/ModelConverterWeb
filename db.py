@@ -75,6 +75,10 @@ class DBUser(db.Model):
         self.access_token = create_access_token(identity=self.username, fresh=True)
         self.refresh_token = create_refresh_token(identity=self.username)
 
+    def clear_token(self):
+        self.access_token = ''
+        self.refresh_token = ''
+
     def login(self, password):
         if not self.verify_password(password):
             return False
@@ -83,6 +87,12 @@ class DBUser(db.Model):
         db.session.add(self)
         db.session.commit()
         return True
+
+    def logout(self):
+        self.clear_token()
+        self.authenticated = False
+        db.session.add(self)
+        db.session.commit()
 
 # 历史记录表模型
 class DBHistory(db.Model):
