@@ -16,6 +16,11 @@ from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_r
 from db import *
 from err import *
 
+# 支持的输入格式
+SUPPORTED_INPUT_FORMAT = ('mmdet', 'mmcls', 'onnx')
+# 支持的输出格式
+SUPPORTED_OUTPUT_FORMAT = ('nnie', 'onnx', 'tengine')
+
 # 上传文件路径
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'input')
 
@@ -123,16 +128,67 @@ class MCLogout(Resource):
             return make_response(msg('user {} does NOT exist'.format(username)), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         user.logout()
         logout_user()
-        session.pop('username', None)
+        session.clear()
         response = make_response(jsonify(msg='Logout {} success'.format(user.username)), ERROR_CODE['SUCCESS'])
         unset_jwt_cookies(response)
         return response
+
+
+# /input
+class MCInput(Resource):
+    @login_required
+    @jwt_required()
+    def post(self):
+        username = session.get('username')
+        input_format = request.form.get('format')
+        config = request.files.get('config')
+        weight = request.files.get('weight')
+        if input_format not in SUPPORTED_INPUT_FORMAT:
+            return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(input_format, SUPPORTED_INPUT_FORMAT)), 402)
+        if input_format != 'onnx':
+            if config is None:
+                return make_response(jsonify(msg='config file must be provided'), 402)
+            config_filename = secure_filename(config.filename)
+            if not config_filename.endswith('.json'):
+                return make_response(jsonify(msg='config file must be json'), 402)
+            config.save(os.path.join(app.config['UPLOAD_FOLDER'], username, config_filename))
+        if weight is None:
+            return make_response(jsonify(msg='weight file must be provided'), 402)
+        weight_filename = secure_filename(weight.filename)
+        if input_format != 'onnx':
+            if not weight_filename.endswith('.pth'):
+                return make_response(jsonify(msg='weight file must be .pth file'), 402)
+        else:
+            if not weight_filename.endswith('.onnx'):
+                return make_response(jsonify(msg='weight file must be .onnx file'), 402)
+        weight.save(os.path.join(app.config['UPLOAD_FOLDER'], username, weight_filename))
+        response = make_response(jsonify(msg='Set input success'), ERROR_CODE['SUCCESS'])
+        session['input_format'] = input_format
+        return response
+
+
+# /output
+class MCOutput(Resource):
+    @login_required
+    @jwt_required()
+    def post(self):
+        output_format = request.form.get('format')
+        output_name = request.form.get('name')
+        if output_format is None or output_name is None:
+            return make_response(jsonify(msg='Both format and name must be provided'), 402)
+        if output_format not in SUPPORTED_OUTPUT_FORMAT:
+            return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(output_format, SUPPORTED_OUTPUT_FORMAT)), 402)
+        session['output_format'] = output_format
+        session['output_name'] = output_name
+        return make_response(jsonify(msg='Set output success'), ERROR_CODE['SUCCESS'])
 
 
 api.add_resource(MCApi, BASE_URL)
 api.add_resource(MCLogin, BASE_URL + '/login')
 api.add_resource(MCToken, BASE_URL + '/token')
 api.add_resource(MCLogout, BASE_URL + '/logout')
+api.add_resource(MCInput, BASE_URL + '/input')
+api.add_resource(MCOutput, BASE_URL + '/output')
 
 if __name__ == '__main__':
     app.run(host="127.0.0.1", debug=True, port=4396)
