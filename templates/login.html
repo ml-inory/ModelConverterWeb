@@ -3,27 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="../static/js/login.js"></script>
     <link rel="stylesheet" type="text/css" href="../static/styles/login.css">
     <title>模型转换 ---- 登录</title>
 </head>
 <body>
 <div class="login">
-    <form method="post" enctype="multipart/form-data">
+    <form id="login_form">
         <div class="login_row">
             <div class="col-1">
                 <label>用户名</label>
                 <label>密 码</label>
             </div>
             <div class="col-2">
-                <input type="text">
-                <input type="password">
+                <input type="text" name="username" id="username" value="{{ username }}">
+                <input type="password" name="password" id="password" value="{{ password }}">
             </div>
         </div>
 
-        <label>记住我</label>
-        <input type="checkbox">
+        <div class="login_row">
+            <label>记住我</label>
+            <input type="checkbox" name="remember" id="remember" {% if remember %} checked {% endif %}>
+        </div>
 
-        <input type="button" value="登录">
+        <div class="login_row">
+            <input type="button" id="login_btn" onclick="submit_login()" value="登录">
+        </div>
     </form>
 </div>
 </body>

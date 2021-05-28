@@ -5,8 +5,8 @@ Flask-WTF
 Flask-SQLAlchemy
 Werkzeug
 flask-restful
-flask-jwt
 flask-jwt-extended
+flask-cors
 
 mmcv-full
 mmdet

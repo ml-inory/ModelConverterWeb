@@ -6,21 +6,49 @@ body
 div.login{
     background-color: white;
     display: block;
-    margin: 0 auto;
-    width: 250px;
+    width: 300px;
     padding: 20px;
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
 }
 
-.login_row{
-    display: flex;
-    border: 10px;
+div.login_row{
+    display: block;
 }
 
-.col-1{
-    flex: 25%;
+div.col-1{
+    display: inline-block;
+    position: relative;
+    width: auto;
+}
+
+div.col-1 label{
+    position: relative;
+    display: block;
     text-align: center;
+    margin: 10px;
+    height: 50%;
 }
 
-.col-2{
-    flex: 75%;
+div.col-2{
+    display: inline-block;
+    position: relative;
+    width: auto;
+}
+
+div.col-2 input{
+    position: relative;
+    display: block;
+    width: auto;
+    margin: 10px;
+    height: 50%;
+}
+
+#login_btn{
+    position: relative;
+    left: 50%;
 }

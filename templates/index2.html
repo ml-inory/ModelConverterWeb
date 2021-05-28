@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}">
+    <script type=text/javascript src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <title>模型转换: {{ username }}</title>
+</head>
+<body onload="set_input_format('{{ input_format }}'); set_output_format('{{ output_format }}')">
+    <!-- 导航栏 -->
+    <nav class="navigator">
+        <!-- 按钮组 -->
+        <div class="navi_btns">
+            <button type="button" onclick="window.location.href='{{ url_for('logout')}}'">登出</button>
+        </div>
+    </nav>
+
+    <div class="viewport">
+        <!-- 转换 -->
+        <div class="main">
+            <hr/>
+            <!-- 输入格式 -->
+            <p>输入格式：</p>
+            <form method="post" enctype="multipart/form-data">
+                <input type="radio" id="radio_input_mmdet" name="input_format" value="mmdet" onclick="form.submit();" checked/>mmdetection
+                <input type="radio" id="radio_input_mmcls" name="input_format" value="mmcls" onclick="form.submit();"/>mmclassification
+                <input type="radio" id="radio_input_onnx"  name="input_format" value="onnx"  onclick="form.submit();"/>ONNX
+            </form>
+
+
+            <!-- mmdetection输入 -->
+            <div class="input_upload" id="input_mmdet" style="display: block">
+                <form method=post enctype=multipart/form-data>
+                    <label class="upload_btn" for="mmdet_config">选择配置文件</label>
+                    <input class="upload_input" type="file" id="mmdet_config" name="mmdet_config" accept="application/json" onchange="form.submit()">
+                </form>
+                <p id="mmdet_config_name">{{ mmdet_config }}</p>
+                <br>
+                <form method=post enctype=multipart/form-data>
+                    <label class="upload_btn" for="mmdet_pth">选择权重文件</label>
+                    <input class="upload_input" type="file" id="mmdet_pth" name="mmdet_pth" accept=".pth" onchange="form.submit()">
+                </form>
+                <p id="mmdet_pth_name">{{ mmdet_pth }}</p>
+            </div>
+
+            <!-- mmclassification输入 -->
+            <div class="input_upload" id="input_mmcls" style="display: none">
+                <form method=post enctype=multipart/form-data>
+                    <label class="upload_btn" for="mmcls_config">选择配置文件</label>
+                    <input class="upload_input" type="file" id="mmcls_config" name="mmcls_config" accept="application/json" onchange="form.submit()">
+                </form>
+                <p id="mmcls_config_name">{{ mmcls_config }}</p>
+                <br>
+                <form method=post enctype=multipart/form-data>
+                    <label class="upload_btn" for="mmcls_pth">选择权重文件</label>
+                    <input class="upload_input" type="file" id="mmcls_pth" name="mmcls_pth" accept=".pth" onchange="form.submit()">
+                </form>
+                <p id="mmcls_pth_name">{{ mmcls_pth }}</p>
+            </div>
+
+            <!-- onnx输入 -->
+            <div class="input_upload" id="input_onnx" style="display: none">
+                <form method=post enctype=multipart/form-data>
+                    <label class="upload_btn" for="onnx_file">选择权重文件</label>
+                    <input class="upload_input" type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange="form.submit()">
+                </form>
+                <p id="onnx_file_name">{{ onnx_file }}</p>
+            </div>
+
+            <hr/>
+
+            <p>输出格式：</p>
+            <form method=post enctype=multipart/form-data>
+                <input type="radio" id="radio_output_nnie"    name="output_format" value="nnie"       onclick="form.submit()" checked/>NNIE
+                <input type="radio" id="radio_output_tengine" name="output_format" value="tengine"    onclick="form.submit()"/>Tengine
+                <input type="radio" id="radio_output_onnx"    name="output_format" value="onnx"       onclick="form.submit()"/>ONNX
+            </form>
+
+            <p></p>
+
+            <form method="post" enctype="multipart/form-data">
+                <label for="output_name">输出名称：</label>
+                <input type="text" id="output_name" name="output_name" onfocusout="form.submit()" value="{{ output_name }}">
+            </form>
+
+
+            <hr/>
+            <p>转换参数：</p>
+            <form enctype="multipart/form-data" method="post" id="convert_param_form">
+                <div class="convert_param">
+                    <!-- 输入尺寸 -->
+                    <label>输入尺寸：</label>
+                    <label for="input_width">W:</label>
+                    <input type="text" id="input_width" name="input_width" maxlength="4" value="{{ input_width }}">
+                    <label for="input_height">H:</label>
+                    <input type="text" id="input_height" name="input_height" maxlength="4" value="{{ input_height }}">
+                </div>
+
+                <p></p>
+
+                <div class="convert_param" id="param_nnie" style="display: block">
+                    <!-- RGB顺序 -->
+                    <label>RGB Order：</label>
+                    <select name="rgb_order" id="rgb_order">
+                        <option value="" disabled selected style="display:none;">Select an order</option>
+                        <option value="RGB">RGB</option>
+                        <option value="BGR">BGR</option>
+                    </select>
+                    {% if rgb_order %}
+                        <script>
+                            document.getElementById("rgb_order").value = "{{ rgb_order }}";
+                        </script>
+                    {% endif %}
+
+                    <p></p>
+
+                    <!-- mean scale -->
+                    <label>mean: </label>
+                    <input type="text" id="nnie_mean" name="nnie_mean" value="{{ nnie_mean }}" style="max-width: 100px">
+                    <label>scale: </label>
+                    <input type="text" id="nnie_scale" name="nnie_scale" value="{{ nnie_scale }}" style="max-width: 100px">
+
+                    <p></p>
+
+                    <!-- image list -->
+                    <label>image list: </label>
+                    <input type="text" id="img_list" name="img_list" value="{{ img_list }}" style="max-width: 300px; width: 100%">
+                </div>
+
+                <div class="convert_param" id="param_tengine" style="display: none">
+
+                </div>
+
+                <div class="convert_param" id="param_onnx" style="display: none">
+
+                </div>
+            </form>
+
+            <hr/>
+            <button id="convert_btn" onclick="convert();">转    换</button>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="history">
+            <div class="history_title">
+                <p>history</p>
+            </div>
+        </div>
+    </div>
+
+
+
+
+</body>
+</html>

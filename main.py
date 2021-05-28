@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, set_access_cookies, unset_jwt_cookies)
+from flask_cors import CORS
 from db import *
 from err import *
 
@@ -37,12 +38,19 @@ api = Api(app)
 db = init_db('users', app)
 # 初始化jwt
 app.config['JWT_SECRET_KEY'] = 'wf45ww4h64wefa64cxeql64weec64'
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=1)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
+app.config['JWT_SESSION_COOKIE'] = True
 jwt = JWTManager(app)
 # 初始化login
+app.config['REMEMBER_COOKIE_DURATION '] = timedelta(days=7)
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+
+# 跨域
+# cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 API_VERSION = 'v1'
 BASE_URL = '/api/' + API_VERSION
@@ -52,7 +60,11 @@ DBUser.register('rzyang', '123')
 
 @login_manager.user_loader
 def load_user(access_token):
+    # print('access_token: ' + access_token)
+    if access_token == '':
+        return None
     return DBUser.query.filter_by(access_token=access_token).first()
+
 
 # 创建返回信息
 def msg(content):
@@ -69,26 +81,30 @@ class MCLogin(Resource):
     def post(self):
         username = request.form.get('username')
         password = request.form.get('password')
+        remember = request.form.get('remember', type=bool, default=False)
+        # print(username, password, remember)
         # 检查参数完整性
-        if username is None or password is None:
-            return make_response(msg('username and password must be provided'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
+        if (username is None or password is None) or username == '' or password == '':
+            return make_response(msg('用户名或密码不能为空'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         # 检查用户是否存在
         user = DBUser.get_user_by_name(username)
         if user is None:
-            return make_response(msg('user {} does NOT exist'.format(username)), ERROR_CODE['INVALID_UNAME_OR_PWD'])
+            return make_response(msg('用户名或密码不正确'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         # 验证密码
         if not user.login(password):
-            return make_response(msg('password is not correct'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
-        login_user(user)
+            return make_response(msg('用户名或密码不正确'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
+        login_user(user, remember=remember, duration=app.config['REMEMBER_COOKIE_DURATION '])
         # 存储在session
         session['username'] = user.username
+        session['access_token'] = user.access_token
         # 计算token过期时间：当前时间+过期时长
         exp_timestamp = int((datetime.utcnow() + app.config["JWT_ACCESS_TOKEN_EXPIRES"]).timestamp())
         response = make_response(jsonify(msg='Login as {} success'.format(username),
+                                     username=user.username,
                                      access_token=user.access_token,
                                      refresh_token=user.refresh_token,
                                      expiration=exp_timestamp), ERROR_CODE['SUCCESS'])
-        set_access_cookies(response, user.access_token)
+        # set_access_cookies(response, user.access_token)
         return response
 
 
@@ -97,11 +113,6 @@ class MCToken(Resource):
     @login_required
     @jwt_required(refresh=True)
     def get(self):
-        # username = request.args.get('username', type=str, default=None)
-        # if not username:
-        #     return make_response(msg('username must be provided'), ERROR_CODE['INVALID_UNAME_OR_PWD'])
-        # if username != session.get('username'):
-        #     return make_response(msg('user {} is not login'.format(username)), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         user = DBUser.get_user_by_name(session['username'])
         if not user:
             return make_response(msg('user {} does NOT exist'.format(session['username'])), ERROR_CODE['INVALID_UNAME_OR_PWD'])
@@ -118,19 +129,18 @@ class MCLogout(Resource):
     @login_required
     @jwt_required()
     def post(self):
-        # username = request.form.get('username')
-        # if username != session.get('username'):
-        #     return make_response(msg('{} is not login'.format(username)), 401)
         # 检查用户是否存在
         username = session.get('username')
         user = DBUser.get_user_by_name(username)
         if user is None:
             return make_response(msg('user {} does NOT exist'.format(username)), ERROR_CODE['INVALID_UNAME_OR_PWD'])
+        if not user.is_authenticated():
+            return make_response(msg('user {} is not login'.format(username)), ERROR_CODE['INVALID_UNAME_OR_PWD'])
         user.logout()
         logout_user()
         session.clear()
         response = make_response(jsonify(msg='Logout {} success'.format(user.username)), ERROR_CODE['SUCCESS'])
-        unset_jwt_cookies(response)
+        # unset_jwt_cookies(response)
         return response
 
 
@@ -187,6 +197,8 @@ class MCOutput(Resource):
             return make_response(jsonify(msg='Both format and name must be provided'), 402)
         if output_format not in SUPPORTED_OUTPUT_FORMAT:
             return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(output_format, SUPPORTED_OUTPUT_FORMAT)), 402)
+        if not output_name or output_name == '':
+            return make_response(jsonify(msg='未设置输出名称'), 402)
 
         session['output_format'] = output_format
         session['output_name'] = output_name
@@ -196,10 +208,10 @@ class MCOutput(Resource):
 
 # /convert
 class MCConvert(Resource):
-    @staticmethod
-    def check_params():
+    def check_params(self):
         params = ('input_format', 'weight_path', 'output_format', 'output_name')
         for k in params:
+            print(k + ': ' + session.get(k))
             if session.get(k) is None:
                 return False, k
         return True, ''
@@ -225,13 +237,35 @@ class MCConvert(Resource):
         return make_response(jsonify(msg='Convert {} to {} success'.format(session['input_format'], session['output_format'])), ERROR_CODE['SUCCESS'])
 
 
-api.add_resource(MCApi, BASE_URL)
-api.add_resource(MCLogin, BASE_URL + '/login')
-api.add_resource(MCToken, BASE_URL + '/token')
-api.add_resource(MCLogout, BASE_URL + '/logout')
-api.add_resource(MCInput, BASE_URL + '/input')
-api.add_resource(MCOutput, BASE_URL + '/output')
-api.add_resource(MCConvert, BASE_URL + '/convert')
+# /session
+class MCGetSession(Resource):
+    @login_required
+    def get(self):
+        return make_response(jsonify(**session), 200)
+
+
+@app.route('/login')
+def login():
+    if current_user.is_authenticated:
+        return render_template('login.html', username=current_user.username, password=current_user.password, remember=True)
+    else:
+        return render_template('login.html')
+
+
+@app.route('/index')
+@app.route('/')
+@login_required
+def index():
+    return render_template('index.html', username=current_user.username)
 
 if __name__ == '__main__':
+    api.add_resource(MCApi, BASE_URL)
+    api.add_resource(MCLogin, BASE_URL + '/login')
+    api.add_resource(MCToken, BASE_URL + '/token')
+    api.add_resource(MCLogout, BASE_URL + '/logout')
+    api.add_resource(MCInput, BASE_URL + '/input')
+    api.add_resource(MCOutput, BASE_URL + '/output')
+    api.add_resource(MCConvert, BASE_URL + '/convert')
+    api.add_resource(MCGetSession, BASE_URL + '/session')
+    app.config['TESTING'] = False
     app.run(host="127.0.0.1", debug=True, port=4396)
