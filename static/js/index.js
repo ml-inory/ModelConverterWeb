@@ -19,8 +19,7 @@ $(document).ready(function() {
         }
     });
     var username = sessionStorage.getItem("username");
-    var access_token = sessionStorage.getItem("access_token");
-    
+    var access_token = sessionStorage.getItem("access_token");    
 
     // 设置输入格式radio
     $("input[name='input_format']").click(function() {
@@ -59,7 +58,6 @@ $(document).ready(function() {
     // 转换
     $("#convert_btn").click(function() {
         var input_form = get_input_form();
-        var output_form = get_output_form();
         var convert_form = get_convert_form();
 
         // POST 输入
@@ -77,37 +75,33 @@ $(document).ready(function() {
                 sessionStorage.setItem("success", "true");
             },
             error: function(response) {
-                let msg = $.parseJSON(response.responseText).msg;
+                let msg = response.responseJSON.msg;
                 alert(msg);
                 sessionStorage.setItem("success", "false");
             }
         });
 
-        // POST 输出
-        post_output(base_url, access_token, output_form);
-        post_output().then(function(data) {
-            // POST 转换
-            $.ajax({
-                url: base_url + "/convert",
-                type: "POST",
-                data: convert_form,
-                dataType: "json",
-                processData: false,
-                contentType: false,
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
-                },
-                success: function(response) {
-                    sessionStorage.setItem("success", "true");
-                },
-                error: function(response) {
-                    let msg = $.parseJSON(response.responseText).msg;
-                    alert(msg);
-                    sessionStorage.setItem("success", "false");
-                }
-            });
-        }).catch (function(err) {
-
+        // POST 转换
+        $.ajax({
+            url: base_url + "/convert",
+            type: "POST",
+            data: convert_form,
+            dataType: "json",
+            processData: false,
+            contentType: false,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
+            },
+            success: function(response) {
+                sessionStorage.setItem("success", "true");
+                let msg = response.responseJSON.msg;
+                alert(msg);
+            },
+            error: function(response) {
+                let msg = response.responseJSON.msg;
+                alert(msg);
+                sessionStorage.setItem("success", "false");
+            }
         });
     });
 });
@@ -135,18 +129,6 @@ function get_input_form()
     return form;
 }
 
-function get_output_form()
-{
-    var form = new FormData();
-    var output_format = document.querySelector('input[name="output_format"]:checked').value;
-    var output_name = document.getElementById("output_name").value;
-
-    form.append("format", output_format);
-    form.append("name", output_name);
-
-    return form;
-}
-
 function get_convert_form()
 {
     var form = new FormData();
@@ -158,42 +140,16 @@ function get_convert_form()
     var mean = document.getElementById("nnie_mean").value;
     var scale = document.getElementById("nnie_scale").value;
     var img_archive = document.getElementById("img_archive").files[0];
+    var output_format = document.querySelector('input[name="output_format"]:checked').value;
+    var output_name = document.getElementById("output_name").value;
 
     form.append("width", width);
     form.append("height", height);
     form.append("order", order);
     form.append("mean", mean);
     form.append("scale", scale);
+    form.append("output_format", output_format);
+    form.append("output_name", output_name);
     form.append("img_archive", img_archive);
     return form;
-}
-
-function post_output(base_url, access_token, form)
-{
-    return new Promise(function(resolve, reject) {
-        // POST 输出
-        $.ajax({
-            url: base_url + "/output",
-            type: "POST",
-            data: form,
-            dataType: "json",
-            processData: false,
-            contentType: false,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
-            },
-            success: function(response) {
-                console.log("output success");
-                sessionStorage.setItem("success", "true");
-                resolve(response);
-            },
-            error: function(response) {
-                console.log("output error");
-                let msg = $.parseJSON(response.responseText).msg;
-                alert(msg);
-                sessionStorage.setItem("success", "false");
-                // reject(response);
-            }
-        });
-    });
 }

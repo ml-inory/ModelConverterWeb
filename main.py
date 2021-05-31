@@ -158,7 +158,7 @@ class MCInput(Resource):
 
         if input_format != 'onnx':
             if config is None:
-                return make_response(jsonify(msg='config file must be provided'), 402)
+                return make_response(jsonify(msg='未提供配置文件'), 402)
             config_filename = secure_filename(config.filename)
             if not config_filename.endswith('.json'):
                 return make_response(jsonify(msg='config file must be json'), 402)
@@ -167,7 +167,7 @@ class MCInput(Resource):
             session['config_path'] = config_path
 
         if weight is None:
-            return make_response(jsonify(msg='weight file must be provided'), 402)
+            return make_response(jsonify(msg='未提供权重文件'), 402)
         weight_filename = secure_filename(weight.filename)
         if input_format != 'onnx':
             if not weight_filename.endswith('.pth'):
@@ -209,9 +209,9 @@ class MCOutput(Resource):
 # /convert
 class MCConvert(Resource):
     def check_params(self):
-        params = ('input_format', 'weight_path', 'output_format', 'output_name')
+        params = ('input_format', 'weight_path')
         for k in params:
-            print(k + ': ' + session.get(k))
+            # print(k + ': ' + session.get(k))
             if session.get(k) is None:
                 return False, k
         return True, ''
@@ -228,13 +228,22 @@ class MCConvert(Resource):
         order = request.form.get('order', type=str, default='RGB')
         mean = request.form.get('mean', type=int, default=0)
         scale = request.form.get('scale', type=float, default=1.0)
+        output_format = request.form.get('output_format', type=str)
+        output_name = request.form.get('output_name', type=str)
         img_archive = request.files.get('img_archive')
 
-        if session['output_format'] == 'nnie':
-            if img_archive is None:
-                return make_response(jsonify(msg='img_archive must be provided for NNIE'), 402)
+        if output_format is None or output_name is None:
+            return make_response(jsonify(msg='Both format and name must be provided'), 402)
+        if output_format not in SUPPORTED_OUTPUT_FORMAT:
+            return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(output_format, SUPPORTED_OUTPUT_FORMAT)), 402)
+        if not output_name or output_name == '':
+            return make_response(jsonify(msg='未设置输出名称'), 402)
 
-        return make_response(jsonify(msg='Convert {} to {} success'.format(session['input_format'], session['output_format'])), ERROR_CODE['SUCCESS'])
+        if output_format == 'nnie':
+            if img_archive is None:
+                return make_response(jsonify(msg='NNIE需要图片压缩包'), 402)
+
+        return make_response(jsonify(msg='Convert {} to {} success'.format(session['input_format'], output_format)), ERROR_CODE['SUCCESS'])
 
 
 # /session
