@@ -5,7 +5,7 @@ Date: 2021/05/12
 Desc: main
 """
 import os
-from flask import Flask, render_template, Response, session, redirect, url_for, request, flash, send_from_directory, jsonify, make_response
+from flask import Flask, render_template, Response, session, redirect, url_for, request, flash, send_from_directory, jsonify, make_response, send_file
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from flask_restful import Resource, Api, reqparse
 from elements.LoginForm import LoginForm
@@ -16,6 +16,13 @@ from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_r
 from flask_cors import CORS
 from db import *
 from err import *
+# from celery import Celery
+from celery.result import AsyncResult
+from converter import Converter
+import redis
+from datetime import datetime
+from tasks import cel, convert_model, TaskMonitor
+
 
 # 支持的输入格式
 SUPPORTED_INPUT_FORMAT = ('mmdet', 'mmcls', 'onnx')
@@ -24,6 +31,7 @@ SUPPORTED_OUTPUT_FORMAT = ('nnie', 'onnx', 'tengine')
 
 # 上传文件路径
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'input')
+DOWNLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'output')
 
 # 创建Flask应用
 app = Flask(__name__)
@@ -31,6 +39,7 @@ app = Flask(__name__)
 app.secret_key = 'w03ic03h982307ca9385l8c8de19'
 # 设置上传文件路径
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
 api = Api(app)
@@ -38,7 +47,7 @@ api = Api(app)
 db = init_db('users', app)
 # 初始化jwt
 app.config['JWT_SECRET_KEY'] = 'wf45ww4h64wefa64cxeql64weec64'
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=1)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=7)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 app.config['JWT_SESSION_COOKIE'] = True
 jwt = JWTManager(app)
@@ -47,7 +56,16 @@ app.config['REMEMBER_COOKIE_DURATION '] = timedelta(days=7)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+# 配置Celery
+# app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:9394'
+# app.config['CELERY_BROKER_URL'] = 'redis://localhost:9394'
+# celery = make_celery(app)
+# class ContextTask(celery.Task):
+#     def __call__(self, *args, **kwargs):
+#         with app.app_context():
+#             return self.run(*args, **kwargs)
 
+# celery.Task = ContextTask
 
 # 跨域
 # cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -97,6 +115,7 @@ class MCLogin(Resource):
         # 存储在session
         session['username'] = user.username
         session['access_token'] = user.access_token
+        session['refresh_token'] = user.refresh_token
         # 计算token过期时间：当前时间+过期时长
         exp_timestamp = int((datetime.utcnow() + app.config["JWT_ACCESS_TOKEN_EXPIRES"]).timestamp())
         response = make_response(jsonify(msg='Login as {} success'.format(username),
@@ -108,7 +127,7 @@ class MCLogin(Resource):
         return response
 
 
-# /token?username=
+# /token
 class MCToken(Resource):
     @login_required
     @jwt_required(refresh=True)
@@ -165,6 +184,8 @@ class MCInput(Resource):
             config_path = os.path.join(app.config['UPLOAD_FOLDER'], username, config_filename)
             config.save(config_path)
             session['config_path'] = config_path
+        else:
+            session['config_path'] = ''
 
         if weight is None:
             return make_response(jsonify(msg='未提供权重文件'), 402)
@@ -232,6 +253,8 @@ class MCConvert(Resource):
         output_name = request.form.get('output_name', type=str)
         img_archive = request.files.get('img_archive')
 
+        print('output_name:' + output_name)
+
         if output_format is None or output_name is None:
             return make_response(jsonify(msg='Both format and name must be provided'), 402)
         if output_format not in SUPPORTED_OUTPUT_FORMAT:
@@ -242,8 +265,32 @@ class MCConvert(Resource):
         if output_format == 'nnie':
             if img_archive is None:
                 return make_response(jsonify(msg='NNIE需要图片压缩包'), 402)
+            else:
+                # 保存压缩包
+                archive_filename = secure_filename(img_archive)
+                archive_save_path = os.path.join(app.config['UPLOAD_FOLDER'], session['username'], archive_filename)
+                img_archive.save(archive_save_path)
+                session['img_archive'] = archive_save_path
 
-        return make_response(jsonify(msg='Convert {} to {} success'.format(session['input_format'], output_format)), ERROR_CODE['SUCCESS'])
+        # 保存转换参数
+        cvt_params = {}
+        for key in ('width', 'height', 'order', 'mean', 'scale', 'output_format', 'output_name'):
+            cvt_params[key] = eval(key)
+        for key in ('input_format', 'config_path', 'weight_path'):
+            cvt_params[key] = session[key]
+        cvt_params['username'] = session['username']
+        now = datetime.now()
+        cvt_params['date'] = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        # 新建celery任务
+        try:
+            convert_model.delay(cvt_params)
+            # add.delay(4, 4)
+            # print(result.get(timeout=10))
+        except Exception as err:
+            return make_response(jsonify(msg=str(err)), 500)
+
+        return make_response(jsonify(msg='Post task of converting {} to {} success'.format(session['input_format'], output_format), date=cvt_params['date'], output_format=cvt_params['output_format'], output_name=cvt_params['output_name']), ERROR_CODE['SUCCESS'])
 
 
 # /session
@@ -251,6 +298,42 @@ class MCGetSession(Resource):
     @login_required
     def get(self):
         return make_response(jsonify(**session), 200)
+
+# /tasks
+class MCTasks(Resource):
+    @login_required
+    @jwt_required()
+    def get(self):
+        tasks = TaskMonitor.query(session['username'])
+        return make_response(jsonify(msg='Query success', tasks=tasks), 200)
+
+# /model
+class MCModel(Resource):
+    @login_required
+    @jwt_required()
+    def get(self):
+        index = request.args.get('index', type=int)
+        ret = TaskMonitor.get_model(session['username'], index)
+        msg = ret['msg']
+        if msg == 'FAILED':
+            return make_response(jsonify(msg=msg), 502)
+        else:
+            return make_response(jsonify(**ret), 200)
+
+@login_required
+@jwt_required()
+@app.route('/download/<int:index>', methods=['GET', 'POST'])
+def download(index):
+    # index = request.args.get('index', type=int)
+    print('download index: ', index)
+    username = session['username']
+    task = TaskMonitor.tasks[username][index]
+    result = AsyncResult(id=task['task_id'], app=cel)
+    model_path = result.get()['model_path']
+    filename = os.path.basename(model_path)
+    print('model_path: ' + model_path)
+    print('filename:', filename)
+    return send_from_directory(directory=os.path.join(app.config['DOWNLOAD_FOLDER'], session['username']), filename=filename, as_attachment=True)
 
 
 @app.route('/login')
@@ -267,6 +350,8 @@ def login():
 def index():
     return render_template('index.html', username=current_user.username)
 
+
+
 if __name__ == '__main__':
     api.add_resource(MCApi, BASE_URL)
     api.add_resource(MCLogin, BASE_URL + '/login')
@@ -276,5 +361,7 @@ if __name__ == '__main__':
     api.add_resource(MCOutput, BASE_URL + '/output')
     api.add_resource(MCConvert, BASE_URL + '/convert')
     api.add_resource(MCGetSession, BASE_URL + '/session')
+    api.add_resource(MCTasks, BASE_URL + '/tasks')
+    # api.add_resource(MCModel, BASE_URL + '/model')
     app.config['TESTING'] = False
     app.run(host="127.0.0.1", debug=True, port=4396)

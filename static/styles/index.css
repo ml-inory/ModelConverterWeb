@@ -56,6 +56,7 @@ body{
 
 #convert_btn {
     display: block;
+    position: relative;
     background-color: forestgreen;
     font-size: 30px;
     color: white;
@@ -69,15 +70,50 @@ body{
 }
 
 
-.history{
+.tasks{
     display: block;
-    position: fixed;
-    bottom: 0;
+    position: relative;
     width: 100%;
+    height: auto;
+    margin: auto;
+    left: 50%;
+    top: 50px;
+}
+
+.tasks p {
     background-color: black;
     color: white;
+    margin-bottom: 0;
+    text-align: center;
+}
+
+#tasks_tb {
+    width: 100%;
     height: auto;
-    border: 0;
-    padding: 0;
+    border: 1px solid black;
     margin: 0;
+    padding: 0;
+    text-align: center;
+    border-collapse: collapse;
+}
+
+#tasks_tb tr:nth-child(2n) {
+    background: lightgray;
+}
+
+#tasks_tb tr {
+    height: 20px;
+}
+
+#tasks_tb tr:nth-child(1) {
+    border-bottom: 1px solid black;
+}
+
+#tasks_tb td {
+    border: 0;
+    border-right: 1px solid black;
+}
+
+#tasks_tb td:nth-child(1) {
+    width: 200px;
 }

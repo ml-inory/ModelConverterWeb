@@ -1,16 +1,17 @@
 Flask
 Flask-Session
 Flask-Login
-Flask-WTF
 Flask-SQLAlchemy
 Werkzeug
 flask-restful
 flask-jwt-extended
 flask-cors
+celery==5.0.5
+redis
+flower
 
 mmcv-full
 mmdet
 mmcls
 onnx
-onnx-runtime
 onnx-simplifier

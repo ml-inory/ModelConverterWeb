@@ -5,21 +5,45 @@ var inputDivIDArr = new Array("input_mmdet", "input_mmcls", "input_onnx");
 
 var supportInputFormat = new Array("mmdet", "mmcls", "onnx");
 var supportOutputFormat = new Array("nnie", "tengine", "onnx");
-
+var base_url = "/api/v1";
+var username;
+var access_token;  
+var refresh_token;
+var tasks = null;
 
 $(document).ready(function() {
-    var base_url = "/api/v1";
+    
     $.ajax({
         url: base_url + "/session",
         type: "GET",
         dataType: "json",
         success: function(response) {
             sessionStorage.setItem("access_token", response.access_token);
+            sessionStorage.setItem("refresh_token", response.refresh_token);
             sessionStorage.setItem("username", response.username);
         }
     });
-    var username = sessionStorage.getItem("username");
-    var access_token = sessionStorage.getItem("access_token");    
+    username = sessionStorage.getItem("username");
+    access_token = sessionStorage.getItem("access_token");  
+    refresh_token = sessionStorage.getItem("refresh_token");
+    
+    // 刷新token
+    // $.ajax({
+    //     url: base_url + "/token",
+    //     type: "GET",
+    //     dataType: "json",
+    //     beforeSend: function (xhr) {
+    //         xhr.setRequestHeader('Authorization', 'Bearer ' + refresh_token);
+    //     },
+    //     success: function(response) {
+    //         access_token = response.access_token;
+    //         sessionStorage.setItem("access_token", access_token);  
+    //     }
+    // });
+    // access_token = sessionStorage.getItem("access_token");  
+
+    // 获取任务
+    get_tasks();
 
     // 设置输入格式radio
     $("input[name='input_format']").click(function() {
@@ -61,7 +85,7 @@ $(document).ready(function() {
         var convert_form = get_convert_form();
 
         // POST 输入
-        $.ajax({
+        var input_xhr = $.ajax({
             url: base_url + "/input",
             type: "POST",
             data: input_form,
@@ -71,45 +95,53 @@ $(document).ready(function() {
             beforeSend: function (xhr) {
                 xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
             },
-            success: function(response) {
-                sessionStorage.setItem("success", "true");
-            },
             error: function(response) {
                 let msg = response.responseJSON.msg;
                 alert(msg);
-                sessionStorage.setItem("success", "false");
             }
         });
 
         // POST 转换
-        $.ajax({
-            url: base_url + "/convert",
-            type: "POST",
-            data: convert_form,
-            dataType: "json",
-            processData: false,
-            contentType: false,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
-            },
-            success: function(response) {
-                sessionStorage.setItem("success", "true");
-                let msg = response.responseJSON.msg;
-                alert(msg);
-            },
-            error: function(response) {
-                let msg = response.responseJSON.msg;
-                alert(msg);
-                sessionStorage.setItem("success", "false");
-            }
+        input_xhr.success(function() {
+            $.ajax({
+                url: base_url + "/convert",
+                type: "POST",
+                data: convert_form,
+                dataType: "json",
+                processData: false,
+                contentType: false,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
+                },
+                success: function(response) {
+                    get_tasks();
+                    // var tb = document.getElementById("tasks_tb");
+                    // var row = tb.insertRow();
+                    // var date_cell = row.insertCell();
+                    // var format_cell = row.insertCell();
+                    // var output_cell = row.insertCell();
+                    // date_cell.innerHTML = response.date;
+                    // format_cell.innerHTML = response.output_format;
+                    // output_cell.innerHTML = response.output_name;
+    
+                },
+                error: function(response) {
+                    let msg = response.responseJSON.msg;
+                    alert(msg);
+                }
+            });
         });
     });
+
+    setInterval(get_tasks, 5000);
 });
 
 function get_input_form()
 {
     var form = new FormData();
     var input_format = document.querySelector('input[name="input_format"]:checked').value;
+    // console.log("input_format: " + input_format);
+
     var input_config = "";
     var input_config_elem = document.getElementById(input_format + "_config");
     if (input_config_elem != null)
@@ -152,4 +184,66 @@ function get_convert_form()
     form.append("output_name", output_name);
     form.append("img_archive", img_archive);
     return form;
+}
+
+// 获取时间
+function get_date() {
+    var str = "";
+    var d = new Date();
+    var year = d.getFullYear();
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+    var hour = d.getHours();
+    var minute = d.getMinutes();
+    var second = d.getSeconds();
+    str = year + "/" + month + "/" + day + " " + hour + ":" + minute + ":" + second;
+    return str;
+}
+
+// 获取任务
+function get_tasks() {
+    $.ajax({
+        url: base_url + "/tasks", 
+        type: "GET",
+        dataType: "json",
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + access_token);
+        },
+        success: function(response) {
+            // Now that we've completed the request schedule the next one.
+            var tb_len = response.tasks.length;
+            console.log("table len: " + tb_len);
+            if (tb_len > 0)
+            {
+                var tb = document.getElementById("tasks_tb");
+                var tasks = response.tasks;
+                for (var i = 0; i < tb_len; i++)
+                {
+                    var row = tb.rows.item(i+1);
+                    if (row == null)
+                    {
+                        row = tb.insertRow();
+                        row.insertCell();
+                        row.insertCell();
+                        row.insertCell();
+                    }
+                    var date_cell = row.cells[0];
+                    var format_cell = row.cells[1];
+                    var output_cell = row.cells[2];
+                    date_cell.innerHTML = tasks[i].date;
+                    format_cell.innerHTML = tasks[i].output_format;
+                    output_cell.innerHTML = tasks[i].output_name;
+                    if (tasks[i].success)
+                    {
+                        output_cell.innerHTML = "<a href='/download/" + i + "'>" + tasks[i].output_name + "</a>";
+                    }
+                    else
+                    {
+                        
+                    }
+                }
+                
+            }
+        }
+  });
 }
