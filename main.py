@@ -5,10 +5,9 @@ Date: 2021/05/12
 Desc: main
 """
 import os
-from flask import Flask, render_template, Response, session, redirect, url_for, request, flash, send_from_directory, jsonify, make_response, send_file
+from flask import Flask, json, render_template, Response, session, redirect, url_for, request, flash, send_from_directory, jsonify, make_response, send_file
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from flask_restful import Resource, Api, reqparse
-from elements.LoginForm import LoginForm
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from flask_jwt_extended import JWTManager
@@ -56,19 +55,7 @@ app.config['REMEMBER_COOKIE_DURATION '] = timedelta(days=7)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-# 配置Celery
-# app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:9394'
-# app.config['CELERY_BROKER_URL'] = 'redis://localhost:9394'
-# celery = make_celery(app)
-# class ContextTask(celery.Task):
-#     def __call__(self, *args, **kwargs):
-#         with app.app_context():
-#             return self.run(*args, **kwargs)
 
-# celery.Task = ContextTask
-
-# 跨域
-# cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 API_VERSION = 'v1'
 BASE_URL = '/api/' + API_VERSION
@@ -196,6 +183,7 @@ class MCInput(Resource):
         else:
             if not weight_filename.endswith('.onnx'):
                 return make_response(jsonify(msg='weight file must be .onnx file'), 402)
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], username), exist_ok=True)
         weight_path = os.path.join(app.config['UPLOAD_FOLDER'], username, weight_filename)
         weight.save(weight_path)
 
@@ -207,42 +195,27 @@ class MCInput(Resource):
         return response
 
 
-# /output
-class MCOutput(Resource):
-    @login_required
-    @jwt_required()
-    def post(self):
-        output_format = request.form.get('format')
-        output_name = request.form.get('name')
-        if output_format is None or output_name is None:
-            return make_response(jsonify(msg='Both format and name must be provided'), 402)
-        if output_format not in SUPPORTED_OUTPUT_FORMAT:
-            return make_response(jsonify(msg='format {} is not supported.Supported formats include {}'.format(output_format, SUPPORTED_OUTPUT_FORMAT)), 402)
-        if not output_name or output_name == '':
-            return make_response(jsonify(msg='未设置输出名称'), 402)
-
-        session['output_format'] = output_format
-        session['output_name'] = output_name
-
-        return make_response(jsonify(msg='Set output success'), ERROR_CODE['SUCCESS'])
-
-
 # /convert
 class MCConvert(Resource):
     def check_params(self):
-        params = ('input_format', 'weight_path')
-        for k in params:
-            # print(k + ': ' + session.get(k))
-            if session.get(k) is None:
-                return False, k
-        return True, ''
+        input_format = session.get('input_format')
+        if input_format is None or input_format == '':
+            return False, '输出格式'
+        config_path = session.get('config_path')
+        weight_path = session.get('weight_path')
+        if weight_path is None or weight_path == '':
+            return False, '权重文件'
+        if input_format != 'onnx':
+            if config_path is None or config_path == '':
+                return False, '配置文件'
+        return True, None
 
     @login_required
     @jwt_required()
     def post(self):
         flag, key = self.check_params()
         if not flag:
-            return make_response(jsonify(msg='{} is not set.Please make sure /input and /output is post correctly before calling /convert'.format(key)), 402)
+            return make_response(jsonify(msg='{} 未设置，请先调用/input接口'.format(key)), 402)
 
         width = request.form.get('width', type=int, default=-1)
         height = request.form.get('height', type=int, default=-1)
@@ -253,7 +226,7 @@ class MCConvert(Resource):
         output_name = request.form.get('output_name', type=str)
         img_archive = request.files.get('img_archive')
 
-        print('output_name:' + output_name)
+        # print('output_name:' + output_name)
 
         if output_format is None or output_name is None:
             return make_response(jsonify(msg='Both format and name must be provided'), 402)
@@ -279,18 +252,15 @@ class MCConvert(Resource):
         for key in ('input_format', 'config_path', 'weight_path'):
             cvt_params[key] = session[key]
         cvt_params['username'] = session['username']
-        now = datetime.now()
-        cvt_params['date'] = now.strftime("%Y-%m-%d %H:%M:%S")
+        cvt_params['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # 新建celery任务
         try:
-            convert_model.delay(cvt_params)
-            # add.delay(4, 4)
-            # print(result.get(timeout=10))
+            task = convert_model.delay(cvt_params)
         except Exception as err:
             return make_response(jsonify(msg=str(err)), 500)
 
-        return make_response(jsonify(msg='Post task of converting {} to {} success'.format(session['input_format'], output_format), date=cvt_params['date'], output_format=cvt_params['output_format'], output_name=cvt_params['output_name']), ERROR_CODE['SUCCESS'])
+        return make_response(jsonify(msg='Post task of converting {} to {} success'.format(session['input_format'], output_format), task_id=task.id, date=cvt_params['date'], output_format=cvt_params['output_format'], output_name=cvt_params['output_name']), ERROR_CODE['SUCCESS'])
 
 
 # /session
@@ -307,17 +277,58 @@ class MCTasks(Resource):
         tasks = TaskMonitor.query(session['username'])
         return make_response(jsonify(msg='Query success', tasks=tasks), 200)
 
+# /task
+class MCTask(Resource):
+    @login_required
+    @jwt_required()
+    def get(self):
+        tid = request.form.get('task_id', type=str)
+        if tid is None:
+            return make_response(msg('请提供task_id'), 403)
+        ret = TaskMonitor.query(session['username'], tid)
+        if ret is None:
+            return make_response(msg('不存在task_id为{}的任务'.format(tid)), 403)
+        return make_response(jsonify(msg='获取任务成功', task=ret), 200)
+        
+# /download
+class MCDownload(Resource):
+    @login_required
+    @jwt_required()
+    def get(self):
+        tid = request.form.get('task_id', type=str)
+        if tid is None:
+            return make_response(msg('请提供task_id'), 403)
+
+        task = TaskMonitor.query(session['username'], tid)
+        if task is None:
+            return make_response(msg('不存在task_id为{}的任务'.format(tid)), 403)
+        if task['success']:
+            async_result = AsyncResult(id=task['task_id'], app=cel)
+            task_result = async_result.get()
+            model_path = task_result['model_path']
+            filename = os.path.basename(model_path)
+            return send_from_directory(directory=os.path.join(app.config['DOWNLOAD_FOLDER'], session['username']), path=filename, as_attachment=True)
+        else:
+            return make_response(msg('任务{}未成功'.format(task['task_id'])), 402)
+
+
 @login_required
 @jwt_required()
 @app.route('/download/<int:index>', methods=['GET', 'POST'])
 def download(index):
-    # index = request.args.get('index', type=int)
     username = session['username']
+    if index >= len(TaskMonitor.tasks[username]):
+        return make_response(jsonify(msg='没有index为{}的任务'.format(index)), 403)
+
     task = TaskMonitor.tasks[username][index]
-    result = AsyncResult(id=task['task_id'], app=cel)
-    model_path = result.get()['model_path']
-    filename = os.path.basename(model_path)
-    return send_from_directory(directory=os.path.join(app.config['DOWNLOAD_FOLDER'], session['username']), filename=filename, as_attachment=True)
+    async_result = AsyncResult(id=task['task_id'], app=cel)
+    task_result = async_result.get()
+    if task_result['success']:
+        model_path = task_result['model_path']
+        filename = os.path.basename(model_path)
+        return send_from_directory(directory=os.path.join(app.config['DOWNLOAD_FOLDER'], session['username']), path=filename, as_attachment=True)
+    else:
+        return make_response(jsonify(msg='任务{}未完成'.format(index)), 402)
 
 
 @app.route('/login')
@@ -342,9 +353,10 @@ if __name__ == '__main__':
     api.add_resource(MCToken, BASE_URL + '/token')
     api.add_resource(MCLogout, BASE_URL + '/logout')
     api.add_resource(MCInput, BASE_URL + '/input')
-    api.add_resource(MCOutput, BASE_URL + '/output')
     api.add_resource(MCConvert, BASE_URL + '/convert')
     api.add_resource(MCGetSession, BASE_URL + '/session')
     api.add_resource(MCTasks, BASE_URL + '/tasks')
+    api.add_resource(MCTask, BASE_URL + '/task')
+    api.add_resource(MCDownload, BASE_URL + '/download')
     app.config['TESTING'] = False
-    app.run(host="127.0.0.1", debug=True, port=4396)
+    app.run(host="0.0.0.0", debug=True, port=4396)

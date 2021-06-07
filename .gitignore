@@ -1,5 +1,7 @@
 .idea/
 __pycache__
 *.db
-static/input/
+static/input/*/
 static/output/*/
+dump.rdb
+.vscode
