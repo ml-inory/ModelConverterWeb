@@ -307,32 +307,16 @@ class MCTasks(Resource):
         tasks = TaskMonitor.query(session['username'])
         return make_response(jsonify(msg='Query success', tasks=tasks), 200)
 
-# /model
-class MCModel(Resource):
-    @login_required
-    @jwt_required()
-    def get(self):
-        index = request.args.get('index', type=int)
-        ret = TaskMonitor.get_model(session['username'], index)
-        msg = ret['msg']
-        if msg == 'FAILED':
-            return make_response(jsonify(msg=msg), 502)
-        else:
-            return make_response(jsonify(**ret), 200)
-
 @login_required
 @jwt_required()
 @app.route('/download/<int:index>', methods=['GET', 'POST'])
 def download(index):
     # index = request.args.get('index', type=int)
-    print('download index: ', index)
     username = session['username']
     task = TaskMonitor.tasks[username][index]
     result = AsyncResult(id=task['task_id'], app=cel)
     model_path = result.get()['model_path']
     filename = os.path.basename(model_path)
-    print('model_path: ' + model_path)
-    print('filename:', filename)
     return send_from_directory(directory=os.path.join(app.config['DOWNLOAD_FOLDER'], session['username']), filename=filename, as_attachment=True)
 
 
@@ -362,6 +346,5 @@ if __name__ == '__main__':
     api.add_resource(MCConvert, BASE_URL + '/convert')
     api.add_resource(MCGetSession, BASE_URL + '/session')
     api.add_resource(MCTasks, BASE_URL + '/tasks')
-    # api.add_resource(MCModel, BASE_URL + '/model')
     app.config['TESTING'] = False
     app.run(host="127.0.0.1", debug=True, port=4396)

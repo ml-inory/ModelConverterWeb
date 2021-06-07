@@ -42,11 +42,6 @@ class TaskMonitor:
                 t['model_path'] = result.get()['model_path']
         return tasks
 
-    # 获取某个index的任务的结果
-    @staticmethod
-    def get_model(username, index):
-        pass
-
 
 @before_task_publish.connect
 def task_send_handler(sender=None, headers=None, body=None, **kwargs):

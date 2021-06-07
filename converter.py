@@ -15,6 +15,7 @@ def onnx2onnx(params):
         print('failed')
         return None
 
+
 class Converter:
     def __init__(self):
         pass
