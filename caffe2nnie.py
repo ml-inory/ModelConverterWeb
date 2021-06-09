@@ -30,24 +30,30 @@ def parse_args():
 def write_f(f, key, value):
     f.write(f'[{key}] {value}\n')
 
-def gen_imageList(image_dir):
-    with open('imageList.txt', 'w') as f:
+def gen_imageList(image_dir, tmp_dir):
+    output_path = 'imageList.txt'
+    if tmp_dir is not None:
+        output_path = os.path.join(tmp_dir, output_path)
+    with open(output_path, 'w') as f:
         imgs = glob.glob(image_dir + '/*.jpg')
         for img in imgs:
             f.write(img + '\n')
 
-def gen_mean(mean):
-    with open('mean.txt', 'w') as f:
+def gen_mean(mean, tmp_dir):
+    output_path = 'mean.txt'
+    if tmp_dir is not None:
+        output_path = os.path.join(tmp_dir, output_path)
+    with open(output_path, 'w') as f:
         if len(mean) == 1:
             f.write(f'{mean[0]}\n{mean[0]}\n{mean[0]}')
         else:
             f.write(f'{mean[0]}\n{mean[1]}\n{mean[2]}')
 
-def convert_to_nnie(output, prototxt, caffemodel, image_dir, work_dir='../../mapper/', RGB=True, preprocess=True, scale=0.0078125, mean=[127.5], int8=True):
+def convert_to_nnie(output, prototxt, caffemodel, image_dir, work_dir='../../mapper/', tmp_dir=None, RGB=True, preprocess=True, scale=0.0078125, mean=[127.5], int8=True):
     cur_path = os.path.abspath(os.getcwd())
 
     os.chdir(work_dir)
-    gen_imageList(os.path.join(cur_path, image_dir))
+    gen_imageList(os.path.join(cur_path, image_dir), tmp_dir)
 
     model_name = os.path.splitext(os.path.basename(output))[0]
     cfg_file = model_name + '.cfg'
@@ -62,7 +68,7 @@ def convert_to_nnie(output, prototxt, caffemodel, image_dir, work_dir='../../map
         if preprocess:
             write_f(f, 'norm_type', 5)
             write_f(f, 'data_scale', scale)
-            gen_mean(mean)
+            gen_mean(mean, tmp_dir)
             write_f(f, 'mean_file', './mean.txt')
         else:
             write_f(f, 'norm_type', 0)

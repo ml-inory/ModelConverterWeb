@@ -107,7 +107,7 @@ def caffe2nnie(caffe_output, params):
     is_rgb = params['order'] == 'RGB'
     scale = params['scale']
     mean = params['mean']
-    return convert_to_nnie(wk, cf_ptx, cf_model, image_dir, work_dir, is_rgb, preprocess=True, scale=scale, mean=[mean], int8=True)
+    return convert_to_nnie(wk, cf_ptx, cf_model, image_dir, work_dir, tmp_dir=os.path.abspath(os.path.join('static', 'input', params['username'])), RGB=is_rgb, preprocess=True, scale=scale, mean=[mean], int8=True)
 
 def onnx2nnie(params):
     caffe_output = onnx2caffe(params)
