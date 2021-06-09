@@ -240,7 +240,7 @@ class MCConvert(Resource):
                 return make_response(jsonify(msg='NNIE需要图片压缩包'), 402)
             else:
                 # 保存压缩包
-                archive_filename = secure_filename(img_archive)
+                archive_filename = secure_filename(img_archive.filename)
                 archive_save_path = os.path.join(app.config['UPLOAD_FOLDER'], session['username'], archive_filename)
                 img_archive.save(archive_save_path)
                 session['img_archive'] = archive_save_path
@@ -253,6 +253,7 @@ class MCConvert(Resource):
             cvt_params[key] = session[key]
         cvt_params['username'] = session['username']
         cvt_params['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cvt_params['img_archive'] = archive_save_path if output_format == 'nnie' else ''
 
         # 新建celery任务
         try:
@@ -282,9 +283,9 @@ class MCTask(Resource):
     @login_required
     @jwt_required()
     def get(self):
-        tid = request.form.get('task_id', type=str)
+        tid = request.args.get('task_id', type=str)
         if tid is None:
-            return make_response(msg('请提供task_id'), 403)
+            return make_response(msg('请提供task_id'), 402)
         ret = TaskMonitor.query(session['username'], tid)
         if ret is None:
             return make_response(msg('不存在task_id为{}的任务'.format(tid)), 403)
@@ -295,14 +296,14 @@ class MCDownload(Resource):
     @login_required
     @jwt_required()
     def get(self):
-        tid = request.form.get('task_id', type=str)
+        tid = request.args.get('task_id', type=str)
         if tid is None:
             return make_response(msg('请提供task_id'), 403)
 
         task = TaskMonitor.query(session['username'], tid)
         if task is None:
             return make_response(msg('不存在task_id为{}的任务'.format(tid)), 403)
-        if task['success']:
+        if task['state'] == 'SUCCESS':
             async_result = AsyncResult(id=task['task_id'], app=cel)
             task_result = async_result.get()
             model_path = task_result['model_path']

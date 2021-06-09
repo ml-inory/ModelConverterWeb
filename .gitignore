@@ -5,3 +5,14 @@ static/input/*/
 static/output/*/
 dump.rdb
 .vscode
+mapper_debug.log
+mapper_error.log
+*.dot
+dout_nne_para.txt
+ibd_para.txt
+imageList.txt
+instruction.txt
+mean.txt
+netmem_info.data
+RUNTIME.txt
+*.cfg

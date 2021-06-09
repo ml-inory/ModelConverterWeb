@@ -1,0 +1,11 @@
+[prototxt_file] ./model/model.prototxt
+[caffemodel_file] ./model/model.caffemodel
+[net_type] 0
+[batch_num] 0
+[norm_type] 5
+[mean_file] ./model/mean.txt
+[image_type] 1
+[image_list] ./model/imageList.txt
+[RGB_order] RGB
+[data_scale] 0.00390625
+[instruction_name] ./model/model_inst
